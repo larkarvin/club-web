@@ -1,0 +1,638 @@
+// Import Google Font
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+
+// Mixins
+@mixin no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 0.375rem;
+    height: 0.375rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #e4e7ec;
+    border-radius: 9999px;
+
+    .dark & {
+      background-color: #344054;
+    }
+  }
+}
+
+// SCSS Variables
+$font-outfit: 'Outfit', sans-serif;
+
+// Breakpoints
+$breakpoint-2xsm: 375px;
+$breakpoint-xsm: 425px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;
+$breakpoint-3xl: 2000px;
+
+// Text Sizes
+$text-title-2xl: 72px;
+$text-title-2xl-line-height: 90px;
+$text-title-xl: 60px;
+$text-title-xl-line-height: 72px;
+$text-title-lg: 48px;
+$text-title-lg-line-height: 60px;
+$text-title-md: 36px;
+$text-title-md-line-height: 44px;
+$text-title-sm: 30px;
+$text-title-sm-line-height: 38px;
+$text-theme-xl: 20px;
+$text-theme-xl-line-height: 30px;
+$text-theme-sm: 14px;
+$text-theme-sm-line-height: 20px;
+$text-theme-xs: 12px;
+$text-theme-xs-line-height: 18px;
+
+// Colors
+$color-white: #ffffff;
+$color-black: #101828;
+
+// Brand Colors
+$color-brand-25: #f2f7ff;
+$color-brand-50: #ecf3ff;
+$color-brand-100: #dde9ff;
+$color-brand-200: #c2d6ff;
+$color-brand-300: #9cb9ff;
+$color-brand-400: #7592ff;
+$color-brand-500: #465fff;
+$color-brand-600: #3641f5;
+$color-brand-700: #2a31d8;
+$color-brand-800: #252dae;
+$color-brand-900: #262e89;
+$color-brand-950: #161950;
+
+// Blue Light Colors
+$color-blue-light-25: #f5fbff;
+$color-blue-light-50: #f0f9ff;
+$color-blue-light-100: #e0f2fe;
+$color-blue-light-200: #b9e6fe;
+$color-blue-light-300: #7cd4fd;
+$color-blue-light-400: #36bffa;
+$color-blue-light-500: #0ba5ec;
+$color-blue-light-600: #0086c9;
+$color-blue-light-700: #026aa2;
+$color-blue-light-800: #065986;
+$color-blue-light-900: #0b4a6f;
+$color-blue-light-950: #062c41;
+
+// Gray Colors
+$color-gray-25: #fcfcfd;
+$color-gray-50: #f9fafb;
+$color-gray-100: #f2f4f7;
+$color-gray-200: #e4e7ec;
+$color-gray-300: #d0d5dd;
+$color-gray-400: #98a2b3;
+$color-gray-500: #667085;
+$color-gray-600: #475467;
+$color-gray-700: #344054;
+$color-gray-800: #1d2939;
+$color-gray-900: #101828;
+$color-gray-950: #0c111d;
+$color-gray-dark: #1a2231;
+
+// Orange Colors
+$color-orange-25: #fffaf5;
+$color-orange-50: #fff6ed;
+$color-orange-100: #ffead5;
+$color-orange-200: #fddcab;
+$color-orange-300: #feb273;
+$color-orange-400: #fd853a;
+$color-orange-500: #fb6514;
+$color-orange-600: #ec4a0a;
+$color-orange-700: #c4320a;
+$color-orange-800: #9c2a10;
+$color-orange-900: #7e2410;
+$color-orange-950: #511c10;
+
+// Success Colors
+$color-success-25: #f6fef9;
+$color-success-50: #ecfdf3;
+$color-success-100: #d1fadf;
+$color-success-200: #a6f4c5;
+$color-success-300: #6ce9a6;
+$color-success-400: #32d583;
+$color-success-500: #12b76a;
+$color-success-600: #039855;
+$color-success-700: #027a48;
+$color-success-800: #05603a;
+$color-success-900: #054f31;
+$color-success-950: #053321;
+
+// Error Colors
+$color-error-25: #fffbfa;
+$color-error-50: #fef3f2;
+$color-error-100: #fee4e2;
+$color-error-200: #fecdca;
+$color-error-300: #fda29b;
+$color-error-400: #f97066;
+$color-error-500: #f04438;
+$color-error-600: #d92d20;
+$color-error-700: #b42318;
+$color-error-800: #912018;
+$color-error-900: #7a271a;
+$color-error-950: #55160c;
+
+// Warning Colors
+$color-warning-25: #fffcf5;
+$color-warning-50: #fffaeb;
+$color-warning-100: #fef0c7;
+$color-warning-200: #fedf89;
+$color-warning-300: #fec84b;
+$color-warning-400: #fdb022;
+$color-warning-500: #f79009;
+$color-warning-600: #dc6803;
+$color-warning-700: #b54708;
+$color-warning-800: #93370d;
+$color-warning-900: #7a2e0e;
+$color-warning-950: #4e1d09;
+
+// Theme Colors
+$color-theme-pink-500: #ee46bc;
+$color-theme-purple-500: #7a5af8;
+
+// Shadows
+$shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+$shadow-theme-sm:
+  0px 1px 3px 0px rgba(16, 24, 40, 0.1),
+  0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+$shadow-theme-md:
+  0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+  0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+$shadow-theme-lg:
+  0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+  0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+$shadow-theme-xl:
+  0px 20px 24px -4px rgba(16, 24, 40, 0.08),
+  0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+$shadow-datepicker:
+  -5px 0 0 #262d3c,
+  5px 0 0 #262d3c;
+$shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+$shadow-slider-navigation:
+  0px 1px 2px 0px rgba(16, 24, 40, 0.1),
+  0px 1px 3px 0px rgba(16, 24, 40, 0.1);
+$shadow-tooltip:
+  0px 4px 6px -2px rgba(16, 24, 40, 0.05),
+  -8px 0px 20px 8px rgba(16, 24, 40, 0.05);
+
+// Z-Index
+$z-index-1: 1;
+$z-index-9: 9;
+$z-index-99: 99;
+$z-index-999: 999;
+$z-index-9999: 9999;
+$z-index-99999: 99999;
+$z-index-999999: 999999;
+
+// Base Styles
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  border-color: #e4e7ec;
+
+  .dark & {
+    border-color: #344054;
+  }
+}
+
+button:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
+
+body {
+  position: relative;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 400;
+  z-index: 1;
+  background-color: #f9fafb;
+
+  .dark & {
+    background-color: #101828;
+  }
+}
+
+// Menu Item Utilities - FIXED for Dark Mode
+@mixin menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  font-size: 14px;
+  line-height: 20px;
+  transition: all 0.2s ease;
+}
+
+@mixin menu-item-active {
+  background-color: #ecf3ff;
+  color: #465fff;
+
+  .dark & {
+    background-color: rgba(70, 95, 255, 0.12);
+    color: #9cb9ff;
+  }
+}
+
+@mixin menu-item-inactive {
+  color: #344054;
+
+  &:hover {
+    background-color: #f2f4f7;
+    color: #344054;
+  }
+
+  .dark & {
+    color: #d0d5dd;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #d0d5dd;
+    }
+  }
+}
+
+// Menu Item Classes
+.menu-item {
+  @include menu-item;
+  @include menu-item-inactive;
+
+  &.active,
+  &[aria-current='page'] {
+    @include menu-item-active;
+  }
+}
+
+.menu-dropdown-badge-pro-inactive {
+  @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/20;
+}
+
+.menu-dropdown-badge-pro-active {
+  @apply bg-brand-100 dark:bg-brand-500/20;
+}
+
+.menu-dropdown-badge-pro {
+  @apply text-brand-600 dark:text-brand-500 block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase;
+}
+
+.menu-dropdown-badge-inactive {
+  @apply bg-success-50 group-hover:bg-success-100 dark:bg-success-500/15 dark:group-hover:bg-success-500/20;
+}
+
+.menu-dropdown-badge-active {
+  @apply bg-success-100 dark:bg-success-500/20;
+}
+
+.menu-dropdown-badge {
+  @apply text-success-600 dark:text-success-500 block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase;
+}
+
+.menu-dropdown-item {
+  @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-theme-sm font-medium;
+}
+
+.menu-dropdown-item-active {
+  @include menu-item-active;
+}
+
+.menu-dropdown-item-inactive {
+  @include menu-item-inactive;
+}
+
+.menu-item-active {
+  @include menu-item;
+  @include menu-item-active;
+}
+
+.menu-item-inactive {
+  @include menu-item;
+  @include menu-item-inactive;
+}
+
+// Custom Utility Classes
+.no-scrollbar {
+  @include no-scrollbar;
+}
+
+.custom-scrollbar {
+  @include custom-scrollbar;
+}
+
+// Remove Date Icon
+input[type='date']::-webkit-inner-spin-button,
+input[type='time']::-webkit-inner-spin-button,
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+// Sidebar Hover Effects
+.sidebar {
+  &:hover {
+    width: 290px;
+
+    .logo {
+      display: block;
+    }
+
+    .logo-icon {
+      display: none;
+    }
+
+    .sidebar-header {
+      justify-content: space-between;
+    }
+
+    .menu-group-title {
+      display: block;
+    }
+
+    .menu-group-icon {
+      display: none;
+    }
+
+    .menu-item-text {
+      display: inline;
+    }
+
+    .menu-item-arrow {
+      display: block;
+    }
+
+    .menu-dropdown {
+      display: flex;
+    }
+  }
+}
+
+// Table Checkbox
+.tableCheckbox {
+  &:checked {
+    ~ span {
+      border-color: #465fff;
+      background-color: #465fff;
+
+      span {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+// Form Check Input
+.form-check-input {
+  &:checked ~ span {
+    border: 6px solid #465fff;
+
+    .dark & {
+      border-color: #465fff;
+    }
+  }
+}
+
+// Task Checkbox
+.taskCheckbox {
+  &:checked {
+    ~ .box {
+      border-color: #465fff;
+      background-color: #465fff;
+
+      .dark & {
+        border-color: #465fff;
+      }
+
+      span {
+        opacity: 1;
+      }
+    }
+
+    ~ p {
+      color: #98a2b3;
+      text-decoration: line-through;
+    }
+  }
+}
+
+// Task Dragging
+.task {
+  transition: all 0.2s ease;
+
+  &.is-dragging {
+    border-radius: 0.75rem;
+    box-shadow:
+      0px 1px 3px 0px rgba(16, 24, 40, 0.1),
+      0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+    opacity: 0.8;
+    cursor: grabbing;
+  }
+}
+
+// Social & Edit Buttons
+.social-button {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #d0d5dd;
+  background-color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  color: #344054;
+  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    color: #1d2939;
+  }
+
+  .dark & {
+    border-color: #344054;
+    background-color: #1d2939;
+    color: #98a2b3;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: #e4e7ec;
+    }
+  }
+}
+
+.edit-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #d0d5dd;
+  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #344054;
+  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    color: #1d2939;
+  }
+
+  @media (min-width: 1024px) {
+    display: inline-flex;
+    width: auto;
+  }
+
+  .dark & {
+    border-color: #344054;
+    background-color: #1d2939;
+    color: #98a2b3;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: #e4e7ec;
+    }
+  }
+}
+
+// Code Editor Styles
+code[class*='language-'],
+pre[class*='language-'] {
+  text-shadow: none;
+  color: #344054;
+  overflow: hidden !important;
+  font-size: 14px;
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  text-align: justify;
+
+  .dark & {
+    color: #98a2b3;
+  }
+}
+
+.language-html {
+  background-color: #ffffff !important;
+
+  .dark & {
+    background-color: transparent !important;
+  }
+}
+
+.token {
+  text-shadow: none;
+  font-size: 14px;
+
+  &.doctype-tag,
+  &.name {
+    color: #018001;
+  }
+
+  &.tag,
+  &.selector {
+    color: #267f99;
+  }
+
+  &.property {
+    color: #0070c1;
+  }
+
+  &.language-css {
+    color: #1b00ff;
+  }
+
+  &.attr-name {
+    color: #98a2b3;
+  }
+
+  &.attr-value {
+    color: #a31615;
+  }
+
+  &.punctuation {
+    color: #344054;
+
+    .dark & {
+      color: #98a2b3;
+    }
+  }
+}
+
+// Third-party Library Overrides
+.apexcharts-legend-text {
+  color: #344054 !important;
+
+  .dark & {
+    color: #98a2b3 !important;
+  }
+}
+
+.apexcharts-text {
+  fill: #344054 !important;
+
+  .dark & {
+    fill: #98a2b3 !important;
+  }
+}
+
+.simplebar-scrollbar {
+  &::before {
+    background-color: #e4e7ec !important;
+    border-radius: 9999px !important;
+    opacity: 1 !important;
+
+    .dark & {
+      background-color: #344054 !important;
+    }
+  }
+
+  &.simplebar-visible::before {
+    opacity: 1 !important;
+  }
+}
+
+// Input Date Icon
+.input-date-icon {
+  &::-webkit-inner-spin-button,
+  &::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    -webkit-appearance: none;
+  }
+}
+
+// Custom Calendar
+.custom-calendar .fc-h-event {
+  background-color: transparent;
+  border: none;
+  color: #101828;
+}
