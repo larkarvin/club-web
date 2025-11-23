@@ -14,7 +14,7 @@ export default defineNuxtConfig({
     },
     pageTransition: { name: 'fade', mode: 'out-in' },
   },
-  modules: ['@nuxt/eslint', '@nuxt/test-utils', '@nuxt/image', '@nuxtjs/tailwindcss', '@pinia/nuxt', 'nuxt-swiper'],
+  modules: ['@nuxt/eslint', '@nuxt/test-utils', '@nuxt/image', '@nuxtjs/tailwindcss', '@pinia/nuxt', 'nuxt-swiper', 'nuxt-auth-sanctum'],
   css: ['flatpickr/dist/flatpickr.css', 'simplebar-vue/dist/simplebar.min.css', '@/assets/scss/main.scss'],
   routeRules: {
     '/**': isDev ? {} : { cache: { swr: true, maxAge: 120, staleMaxAge: 60, headersOnly: true } },
@@ -24,6 +24,25 @@ export default defineNuxtConfig({
     plugins: {
       tailwindcss: {},
       autoprefixer: {},
+    },
+  },
+  sanctum: {
+    baseUrl: process.env.NUXT_PUBLIC_SANCTUM_BASE_URL || 'http://localhost:9991',
+    mode: 'cookie',
+    userStateKey: 'sanctum.user.identity',
+    redirectIfAuthenticated: false,
+    redirectIfUnauthenticated: false,
+    endpoints: {
+      csrf: '/sanctum/csrf-cookie',
+      login: '/api/v1/login',
+      logout: '/api/v1/logout',
+      user: '/api/v1/user',
+    },
+    redirect: {
+      onLogin: '/',
+      onLogout: '/auth/signin',
+      onAuthOnly: '/auth/signin',
+      onGuestOnly: '/',
     },
   },
   runtimeConfig: {

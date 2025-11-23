@@ -1,3 +1,259 @@
+<script setup lang="ts">
+import BaseInput from '@/components/forms/BaseInput.vue';
+import PasswordInput from '@/components/forms/PasswordInput.vue';
+import { useValidation } from '@/composables/useValidation';
+
+// Use Sanctum composables
+const { login } = useSanctumAuth();
+const client = useSanctumClient();
+
+// Get validation rules
+const { VALIDATIONS } = useValidation();
+
+// Form data (using reactive for consistency)
+const formData = reactive({
+  clubName: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+  agreeToTerms: false,
+});
+
+// Create refs for v-model bindings
+const clubName = computed({
+  get: () => formData.clubName,
+  set: (val) => (formData.clubName = val),
+});
+const firstName = computed({
+  get: () => formData.firstName,
+  set: (val) => (formData.firstName = val),
+});
+const lastName = computed({
+  get: () => formData.lastName,
+  set: (val) => (formData.lastName = val),
+});
+const email = computed({
+  get: () => formData.email,
+  set: (val) => (formData.email = val),
+});
+const agreeToTerms = computed({
+  get: () => formData.agreeToTerms,
+  set: (val) => (formData.agreeToTerms = val),
+});
+
+// Form object for password fields (to maintain compatibility with PasswordInput)
+const form = reactive({
+  password: computed({
+    get: () => formData.password,
+    set: (val) => (formData.password = val),
+  }),
+  password_confirmation: computed({
+    get: () => formData.password_confirmation,
+    set: (val) => (formData.password_confirmation = val),
+  }),
+});
+
+// Error handling
+const errors = reactive({
+  club_name: '',
+  first_name: '',
+  last_name: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+  agreeToTerms: '',
+  general: '',
+});
+
+// Loading state
+const isLoading = ref(false);
+
+// Submission guard to prevent double-submission
+const isSubmitting = ref(false);
+
+// Clear all errors
+const clearErrors = () => {
+  Object.keys(errors).forEach((key) => {
+    errors[key as keyof typeof errors] = '';
+  });
+};
+
+// Client-side validation
+const validateForm = (): boolean => {
+  clearErrors();
+  let isValid = true;
+
+  // Validate club name
+  if (!formData.clubName.trim()) {
+    errors.club_name = 'Club name is required';
+    isValid = false;
+  }
+
+  // Validate first name
+  if (!formData.firstName.trim()) {
+    errors.first_name = 'First name is required';
+    isValid = false;
+  }
+
+  // Validate last name
+  if (!formData.lastName.trim()) {
+    errors.last_name = 'Last name is required';
+    isValid = false;
+  }
+
+  // Validate email
+  if (!formData.email.trim()) {
+    errors.email = 'Email is required';
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    errors.email = 'Please enter a valid email address';
+    isValid = false;
+  }
+
+  // Validate password
+  if (!formData.password) {
+    errors.password = 'Password is required';
+    isValid = false;
+  } else if (formData.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters';
+    isValid = false;
+  } else {
+    // Check password requirements
+    const hasUppercase = /[A-Z]/.test(formData.password);
+    const hasLowercase = /[a-z]/.test(formData.password);
+    const hasNumber = /[0-9]/.test(formData.password);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSymbol) {
+      errors.password = 'Password must contain uppercase, lowercase, number, and symbol';
+      isValid = false;
+    }
+  }
+
+  // Validate password confirmation
+  if (!formData.password_confirmation) {
+    errors.password_confirmation = 'Please confirm your password';
+    isValid = false;
+  } else if (formData.password !== formData.password_confirmation) {
+    errors.password_confirmation = 'Passwords do not match';
+    isValid = false;
+  }
+
+  // Validate terms agreement
+  if (!formData.agreeToTerms) {
+    errors.agreeToTerms = 'You must agree to the terms and conditions';
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+// Handle form submission with Sanctum
+const handleSubmit = async () => {
+  // Prevent double submission
+  if (isSubmitting.value) {
+    return;
+  }
+
+  // Validate form before submission
+  if (!validateForm()) {
+    isLoading.value = false;
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+    isSubmitting.value = true;
+
+    // Prepare registration data
+    const registrationData = {
+      club_name: formData.clubName.trim(),
+      first_name: formData.firstName.trim(),
+      last_name: formData.lastName.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      password_confirmation: formData.password_confirmation,
+    };
+
+    // Register the user using Sanctum client
+    await client('/api/v1/register', {
+      method: 'POST',
+      body: registrationData,
+    });
+
+    // Log the user in after successful registration
+    try {
+      await login({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+
+      // Redirect to dashboard on success
+      navigateTo('/');
+    } catch (loginError: any) {
+      console.error('Login after registration failed:', loginError);
+      errors.general = 'Registration successful, but automatic login failed. Please sign in manually.';
+
+      // Redirect to signin page after a delay
+      setTimeout(() => {
+        navigateTo('/auth/signin');
+      }, 3000);
+    }
+  } catch (error: any) {
+    console.error('Registration failed:', error);
+
+    // Check if response exists (network error handling)
+    if (!error.response) {
+      errors.general = 'Network error. Please check your connection and try again.';
+      return;
+    }
+
+    // Handle validation errors (422)
+    if (error.response?.status === 422 && error.response?._data?.errors) {
+      const validationErrors = error.response._data.errors;
+
+      // Map backend errors (snake_case) to frontend errors
+      const errorMap: Record<string, keyof typeof errors> = {
+        'club_name': 'club_name',
+        'clubName': 'club_name',
+        'first_name': 'first_name',
+        'firstName': 'first_name',
+        'last_name': 'last_name',
+        'lastName': 'last_name',
+        'email': 'email',
+        'password': 'password',
+        'password_confirmation': 'password_confirmation',
+        'agree_to_terms': 'agreeToTerms',
+        'agreeToTerms': 'agreeToTerms',
+      };
+
+      Object.keys(validationErrors).forEach((key) => {
+        const mappedKey = errorMap[key];
+        if (mappedKey) {
+          errors[mappedKey] = Array.isArray(validationErrors[key])
+            ? validationErrors[key][0]
+            : validationErrors[key];
+        }
+      });
+    }
+    // Handle CSRF errors (419)
+    else if (error.response?.status === 419) {
+      errors.general = 'Session expired. Please refresh the page and try again.';
+    }
+    // Handle other errors
+    else {
+      const message = error.response?._data?.message;
+      errors.general = message || 'Registration failed. Please try again.';
+    }
+  } finally {
+    isLoading.value = false;
+    isSubmitting.value = false;
+  }
+};
+</script>
+
 <template>
   <FullScreenLayout>
     <div class="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
@@ -70,38 +326,44 @@
                 </div>
               </div>
               <form @submit.prevent="handleSubmit">
+                <!-- General Error Message -->
+                <div
+                  v-if="errors.general"
+                  class="mb-5 p-4 text-sm text-red-600 bg-red-50 rounded-lg dark:bg-red-900/20 dark:text-red-400"
+                >
+                  {{ errors.general }}
+                </div>
 
                 <div class="space-y-5">
                   <div class="mb-1.5">
-                      <BaseInput
-                        v-model="clubName"
-                        label="Club Name"
-                        placeholder="Enter your club name"
-                        required
-                        :error="club_name"
-                      />
-
+                    <BaseInput
+                      v-model="clubName"
+                      label="Club Name"
+                      placeholder="Enter your club name"
+                      required
+                      :error="errors.club_name"
+                    />
                   </div>
                   <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <!-- First Name -->
                     <div class="sm:col-span-1">
-                        <BaseInput
-                          v-model="firstName"
-                          label="First Name"
-                          placeholder="Enter your First Name"
-                          required
-                          :error="first_name"
-                        />
+                      <BaseInput
+                        v-model="firstName"
+                        label="First Name"
+                        placeholder="Enter your First Name"
+                        required
+                        :error="errors.first_name"
+                      />
                     </div>
                     <!-- Last Name -->
                     <div class="sm:col-span-1">
-                        <BaseInput
-                          v-model="lastName"
-                          label="Last Name"
-                          placeholder="Enter your Last Name"
-                          required
-                          :error="last_name"
-                        />
+                      <BaseInput
+                        v-model="lastName"
+                        label="Last Name"
+                        placeholder="Enter your Last Name"
+                        required
+                        :error="errors.last_name"
+                      />
                     </div>
                   </div>
                   <!-- Email -->
@@ -111,9 +373,8 @@
                       label="Email"
                       placeholder="Enter your E-mail"
                       required
-                      :error="email"
-                    />                   
-
+                      :error="errors.email"
+                    />
                   </div>
                   <!-- Password -->
                   <div>
@@ -124,6 +385,7 @@
                       placeholder="Enter your password"
                       :live-validation="true"
                       required
+                      :error="errors.password"
                     />
                   </div>
 
@@ -136,6 +398,7 @@
                       :match-with="form.password"
                       :live-validation="false"
                       required
+                      :error="errors.password_confirmation"
                     />
                   </div>
                   <!-- Checkbox -->
@@ -176,20 +439,47 @@
                         </div>
                         <p class="inline-block font-normal text-gray-500 dark:text-gray-400">
                           By creating an account means you agree to the
-                          <a href="#" target="_blank" class="text-gray-800 dark:text-white/90"> Terms and Conditions, </a>
+                          <a href="#" target="_blank" class="text-gray-800 dark:text-white/90">
+                            Terms and Conditions,
+                          </a>
                           and our
                           <a href="#" target="_blank" class="text-gray-800 dark:text-white"> Privacy Policy </a>
                         </p>
                       </label>
+                      <p v-if="errors.agreeToTerms" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                        {{ errors.agreeToTerms }}
+                      </p>
                     </div>
                   </div>
                   <!-- Button -->
                   <div>
                     <button
                       type="submit"
-                      class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+                      :disabled="isLoading"
+                      class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Sign Up
+                      <svg
+                        v-if="isLoading"
+                        class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {{ isLoading ? 'Signing Up...' : 'Sign Up' }}
                     </button>
                   </div>
                 </div>
@@ -222,47 +512,3 @@
     </div>
   </FullScreenLayout>
 </template>
-<script setup lang="ts">
-import { reactive } from 'vue'
-import BaseInput from '@/components/forms/BaseInput.vue'
-import PasswordInput from '@/components/forms/PasswordInput.vue'
-import { useValidation } from '@/composables/useValidation'
-import { useFormSubmit } from '@/composables/useFormSubmit'
-
-const { validations } = useValidation()
-
-// Form data
-const form = reactive({
-  club_name: '',
-  first_name: '',
-  last_name: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-  agreeToTerms: false
-})
-
-// Validation schema
-const schema = {
-  club_name: (v: string) => v ? true : 'Club name is required',
-  first_name: (v: string) => v ? true : 'First name is required',
-  last_name: (v: string) => v ? true : 'Last name is required',
-  email: (v: string) => v ? (validations.email()(v) ? true : 'Invalid email') : 'Email is required',
-  password: (v: string) => v ? (validations.password()(v) ? true : 'Password does not meet requirements') : 'Password is required',
-  password_confirmation: () => (v: string) => v === form.password ? true : 'Passwords do not match',
-  agreeToTerms: (v: boolean) => v ? true : 'You must agree to terms'
-}
-
-// Use form submit composable
-const { errors, submit } = useFormSubmit(form, schema)
-
-// Handle form submission
-const handleSubmit = () => {
-  submit(async () => {
-    const api = useNuxtApp().$api
-    await api.post('/register', form)
-    console.log('Form submitted successfully!')
-    // optionally reset form
-  })
-}
-</script>
