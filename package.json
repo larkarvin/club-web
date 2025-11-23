@@ -7,7 +7,12 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
@@ -30,6 +35,7 @@
     "jsvectormap": "^1.7.0",
     "lucide-vue-next": "^0.553.0",
     "nuxt": "^4.2.1",
+    "nuxt-auth-sanctum": "^1.4.3",
     "nuxt-swiper": "^2.0.1",
     "pinia": "^3.0.4",
     "prismjs": "^1.30.0",
@@ -42,6 +48,7 @@
     "vuevectormap": "^2.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^24.10.0",

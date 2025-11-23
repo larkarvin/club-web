@@ -1,3 +1,22 @@
+<script setup lang="ts">
+import FullScreenLayout from '@/components/layout/FullScreenLayout.vue';
+import BaseInput from '@/components/forms/BaseInput.vue';
+import PasswordInput from '@/components/forms/PasswordInput.vue';
+import { useSignup } from '@/composables/useSignup';
+
+// Use signup composable - encapsulates all form logic and Sanctum integration
+const {
+  clubName,
+  name,
+  email,
+  agreeToTerms,
+  form,
+  errors,
+  isLoading,
+  submit,
+} = useSignup();
+</script>
+
 <template>
   <FullScreenLayout>
     <div class="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
@@ -69,40 +88,34 @@
                   <span class="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">Or</span>
                 </div>
               </div>
-              <form @submit.prevent="handleSubmit">
+              <form @submit.prevent="submit">
+                <!-- General Error Message -->
+                <div
+                  v-if="errors.general"
+                  class="mb-5 p-4 text-sm text-red-600 bg-red-50 rounded-lg dark:bg-red-900/20 dark:text-red-400"
+                >
+                  {{ errors.general }}
+                </div>
 
                 <div class="space-y-5">
                   <div class="mb-1.5">
-                      <BaseInput
-                        v-model="clubName"
-                        label="Club Name"
-                        placeholder="Enter your club name"
-                        required
-                        :error="club_name"
-                      />
-
+                    <BaseInput
+                      v-model="clubName"
+                      label="Club Name"
+                      placeholder="Enter your club name"
+                      required
+                      :error="errors.club_name"
+                    />
                   </div>
-                  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <!-- First Name -->
-                    <div class="sm:col-span-1">
-                        <BaseInput
-                          v-model="firstName"
-                          label="First Name"
-                          placeholder="Enter your First Name"
-                          required
-                          :error="first_name"
-                        />
-                    </div>
-                    <!-- Last Name -->
-                    <div class="sm:col-span-1">
-                        <BaseInput
-                          v-model="lastName"
-                          label="Last Name"
-                          placeholder="Enter your Last Name"
-                          required
-                          :error="last_name"
-                        />
-                    </div>
+                  <!-- Name -->
+                  <div>
+                    <BaseInput
+                      v-model="name"
+                      label="Name"
+                      placeholder="Enter your full name"
+                      required
+                      :error="errors.name"
+                    />
                   </div>
                   <!-- Email -->
                   <div>
@@ -111,9 +124,8 @@
                       label="Email"
                       placeholder="Enter your E-mail"
                       required
-                      :error="email"
-                    />                   
-
+                      :error="errors.email"
+                    />
                   </div>
                   <!-- Password -->
                   <div>
@@ -124,6 +136,7 @@
                       placeholder="Enter your password"
                       :live-validation="true"
                       required
+                      :error="errors.password"
                     />
                   </div>
 
@@ -136,6 +149,7 @@
                       :match-with="form.password"
                       :live-validation="false"
                       required
+                      :error="errors.password_confirmation"
                     />
                   </div>
                   <!-- Checkbox -->
@@ -176,20 +190,47 @@
                         </div>
                         <p class="inline-block font-normal text-gray-500 dark:text-gray-400">
                           By creating an account means you agree to the
-                          <a href="#" target="_blank" class="text-gray-800 dark:text-white/90"> Terms and Conditions, </a>
+                          <a href="#" target="_blank" class="text-gray-800 dark:text-white/90">
+                            Terms and Conditions,
+                          </a>
                           and our
                           <a href="#" target="_blank" class="text-gray-800 dark:text-white"> Privacy Policy </a>
                         </p>
                       </label>
+                      <p v-if="errors.agreeToTerms" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                        {{ errors.agreeToTerms }}
+                      </p>
                     </div>
                   </div>
                   <!-- Button -->
                   <div>
                     <button
                       type="submit"
-                      class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+                      :disabled="isLoading"
+                      class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Sign Up
+                      <svg
+                        v-if="isLoading"
+                        class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {{ isLoading ? 'Signing Up...' : 'Sign Up' }}
                     </button>
                   </div>
                 </div>
@@ -222,47 +263,3 @@
     </div>
   </FullScreenLayout>
 </template>
-<script setup lang="ts">
-import { reactive } from 'vue'
-import BaseInput from '@/components/forms/BaseInput.vue'
-import PasswordInput from '@/components/forms/PasswordInput.vue'
-import { useValidation } from '@/composables/useValidation'
-import { useFormSubmit } from '@/composables/useFormSubmit'
-
-const { validations } = useValidation()
-
-// Form data
-const form = reactive({
-  club_name: '',
-  first_name: '',
-  last_name: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-  agreeToTerms: false
-})
-
-// Validation schema
-const schema = {
-  club_name: (v: string) => v ? true : 'Club name is required',
-  first_name: (v: string) => v ? true : 'First name is required',
-  last_name: (v: string) => v ? true : 'Last name is required',
-  email: (v: string) => v ? (validations.email()(v) ? true : 'Invalid email') : 'Email is required',
-  password: (v: string) => v ? (validations.password()(v) ? true : 'Password does not meet requirements') : 'Password is required',
-  password_confirmation: () => (v: string) => v === form.password ? true : 'Passwords do not match',
-  agreeToTerms: (v: boolean) => v ? true : 'You must agree to terms'
-}
-
-// Use form submit composable
-const { errors, submit } = useFormSubmit(form, schema)
-
-// Handle form submission
-const handleSubmit = () => {
-  submit(async () => {
-    const api = useNuxtApp().$api
-    await api.post('/register', form)
-    console.log('Form submitted successfully!')
-    // optionally reset form
-  })
-}
-</script>
