@@ -1,257 +1,20 @@
 <script setup lang="ts">
+import FullScreenLayout from '@/components/layout/FullScreenLayout.vue';
 import BaseInput from '@/components/forms/BaseInput.vue';
 import PasswordInput from '@/components/forms/PasswordInput.vue';
-import { useValidation } from '@/composables/useValidation';
+import { useSignup } from '@/composables/useSignup';
 
-// Use Sanctum composables
-const { login } = useSanctumAuth();
-const client = useSanctumClient();
-
-// Get validation rules
-const { VALIDATIONS } = useValidation();
-
-// Form data (using reactive for consistency)
-const formData = reactive({
-  clubName: '',
-  firstName: '',
-  lastName: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-  agreeToTerms: false,
-});
-
-// Create refs for v-model bindings
-const clubName = computed({
-  get: () => formData.clubName,
-  set: (val) => (formData.clubName = val),
-});
-const firstName = computed({
-  get: () => formData.firstName,
-  set: (val) => (formData.firstName = val),
-});
-const lastName = computed({
-  get: () => formData.lastName,
-  set: (val) => (formData.lastName = val),
-});
-const email = computed({
-  get: () => formData.email,
-  set: (val) => (formData.email = val),
-});
-const agreeToTerms = computed({
-  get: () => formData.agreeToTerms,
-  set: (val) => (formData.agreeToTerms = val),
-});
-
-// Form object for password fields (to maintain compatibility with PasswordInput)
-const form = reactive({
-  password: computed({
-    get: () => formData.password,
-    set: (val) => (formData.password = val),
-  }),
-  password_confirmation: computed({
-    get: () => formData.password_confirmation,
-    set: (val) => (formData.password_confirmation = val),
-  }),
-});
-
-// Error handling
-const errors = reactive({
-  club_name: '',
-  first_name: '',
-  last_name: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-  agreeToTerms: '',
-  general: '',
-});
-
-// Loading state
-const isLoading = ref(false);
-
-// Submission guard to prevent double-submission
-const isSubmitting = ref(false);
-
-// Clear all errors
-const clearErrors = () => {
-  Object.keys(errors).forEach((key) => {
-    errors[key as keyof typeof errors] = '';
-  });
-};
-
-// Client-side validation
-const validateForm = (): boolean => {
-  clearErrors();
-  let isValid = true;
-
-  // Validate club name
-  if (!formData.clubName.trim()) {
-    errors.club_name = 'Club name is required';
-    isValid = false;
-  }
-
-  // Validate first name
-  if (!formData.firstName.trim()) {
-    errors.first_name = 'First name is required';
-    isValid = false;
-  }
-
-  // Validate last name
-  if (!formData.lastName.trim()) {
-    errors.last_name = 'Last name is required';
-    isValid = false;
-  }
-
-  // Validate email
-  if (!formData.email.trim()) {
-    errors.email = 'Email is required';
-    isValid = false;
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    errors.email = 'Please enter a valid email address';
-    isValid = false;
-  }
-
-  // Validate password
-  if (!formData.password) {
-    errors.password = 'Password is required';
-    isValid = false;
-  } else if (formData.password.length < 8) {
-    errors.password = 'Password must be at least 8 characters';
-    isValid = false;
-  } else {
-    // Check password requirements
-    const hasUppercase = /[A-Z]/.test(formData.password);
-    const hasLowercase = /[a-z]/.test(formData.password);
-    const hasNumber = /[0-9]/.test(formData.password);
-    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
-
-    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSymbol) {
-      errors.password = 'Password must contain uppercase, lowercase, number, and symbol';
-      isValid = false;
-    }
-  }
-
-  // Validate password confirmation
-  if (!formData.password_confirmation) {
-    errors.password_confirmation = 'Please confirm your password';
-    isValid = false;
-  } else if (formData.password !== formData.password_confirmation) {
-    errors.password_confirmation = 'Passwords do not match';
-    isValid = false;
-  }
-
-  // Validate terms agreement
-  if (!formData.agreeToTerms) {
-    errors.agreeToTerms = 'You must agree to the terms and conditions';
-    isValid = false;
-  }
-
-  return isValid;
-};
-
-// Handle form submission with Sanctum
-const handleSubmit = async () => {
-  // Prevent double submission
-  if (isSubmitting.value) {
-    return;
-  }
-
-  // Validate form before submission
-  if (!validateForm()) {
-    isLoading.value = false;
-    return;
-  }
-
-  try {
-    isLoading.value = true;
-    isSubmitting.value = true;
-
-    // Prepare registration data
-    const registrationData = {
-      club_name: formData.clubName.trim(),
-      first_name: formData.firstName.trim(),
-      last_name: formData.lastName.trim(),
-      email: formData.email.trim(),
-      password: formData.password,
-      password_confirmation: formData.password_confirmation,
-    };
-
-    // Register the user using Sanctum client
-    await client('/api/v1/register', {
-      method: 'POST',
-      body: registrationData,
-    });
-
-    // Log the user in after successful registration
-    try {
-      await login({
-        email: formData.email.trim(),
-        password: formData.password,
-      });
-
-      // Redirect to dashboard on success
-      navigateTo('/');
-    } catch (loginError: any) {
-      console.error('Login after registration failed:', loginError);
-      errors.general = 'Registration successful, but automatic login failed. Please sign in manually.';
-
-      // Redirect to signin page after a delay
-      setTimeout(() => {
-        navigateTo('/auth/signin');
-      }, 3000);
-    }
-  } catch (error: any) {
-    console.error('Registration failed:', error);
-
-    // Check if response exists (network error handling)
-    if (!error.response) {
-      errors.general = 'Network error. Please check your connection and try again.';
-      return;
-    }
-
-    // Handle validation errors (422)
-    if (error.response?.status === 422 && error.response?._data?.errors) {
-      const validationErrors = error.response._data.errors;
-
-      // Map backend errors (snake_case) to frontend errors
-      const errorMap: Record<string, keyof typeof errors> = {
-        'club_name': 'club_name',
-        'clubName': 'club_name',
-        'first_name': 'first_name',
-        'firstName': 'first_name',
-        'last_name': 'last_name',
-        'lastName': 'last_name',
-        'email': 'email',
-        'password': 'password',
-        'password_confirmation': 'password_confirmation',
-        'agree_to_terms': 'agreeToTerms',
-        'agreeToTerms': 'agreeToTerms',
-      };
-
-      Object.keys(validationErrors).forEach((key) => {
-        const mappedKey = errorMap[key];
-        if (mappedKey) {
-          errors[mappedKey] = Array.isArray(validationErrors[key])
-            ? validationErrors[key][0]
-            : validationErrors[key];
-        }
-      });
-    }
-    // Handle CSRF errors (419)
-    else if (error.response?.status === 419) {
-      errors.general = 'Session expired. Please refresh the page and try again.';
-    }
-    // Handle other errors
-    else {
-      const message = error.response?._data?.message;
-      errors.general = message || 'Registration failed. Please try again.';
-    }
-  } finally {
-    isLoading.value = false;
-    isSubmitting.value = false;
-  }
-};
+// Use signup composable - encapsulates all form logic and Sanctum integration
+const {
+  clubName,
+  name,
+  email,
+  agreeToTerms,
+  form,
+  errors,
+  isLoading,
+  submit,
+} = useSignup();
 </script>
 
 <template>
@@ -325,7 +88,7 @@ const handleSubmit = async () => {
                   <span class="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">Or</span>
                 </div>
               </div>
-              <form @submit.prevent="handleSubmit">
+              <form @submit.prevent="submit">
                 <!-- General Error Message -->
                 <div
                   v-if="errors.general"
@@ -344,27 +107,15 @@ const handleSubmit = async () => {
                       :error="errors.club_name"
                     />
                   </div>
-                  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <!-- First Name -->
-                    <div class="sm:col-span-1">
-                      <BaseInput
-                        v-model="firstName"
-                        label="First Name"
-                        placeholder="Enter your First Name"
-                        required
-                        :error="errors.first_name"
-                      />
-                    </div>
-                    <!-- Last Name -->
-                    <div class="sm:col-span-1">
-                      <BaseInput
-                        v-model="lastName"
-                        label="Last Name"
-                        placeholder="Enter your Last Name"
-                        required
-                        :error="errors.last_name"
-                      />
-                    </div>
+                  <!-- Name -->
+                  <div>
+                    <BaseInput
+                      v-model="name"
+                      label="Name"
+                      placeholder="Enter your full name"
+                      required
+                      :error="errors.name"
+                    />
                   </div>
                   <!-- Email -->
                   <div>
