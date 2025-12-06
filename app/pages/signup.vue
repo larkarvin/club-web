@@ -27,7 +27,7 @@
               Back to dashboard
             </NuxtLink>
           </div>
-          <!-- Form -->
+
           <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
             <div class="mb-5 sm:mb-8">
               <h1 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
@@ -35,9 +35,12 @@
               </h1>
               <p class="text-sm text-gray-500 dark:text-gray-400">Enter your email and password to sign up!</p>
             </div>
+
             <div>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-1 sm:gap-5">
                 <button
+                  type="button"
+                  @click="handleGoogleSignup"
                   class="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,6 +64,7 @@
                   Sign up with Google
                 </button>
               </div>
+
               <div class="relative py-3 sm:py-5">
                 <div class="absolute inset-0 flex items-center">
                   <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
@@ -69,152 +73,87 @@
                   <span class="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">Or</span>
                 </div>
               </div>
-              <form @submit.prevent="handleSubmit">
 
+              <Form @submit="handleSubmit" :validation-schema="schema" v-slot="{ isSubmitting, setErrors }">
                 <div class="space-y-5">
-                  <div class="mb-1.5">
-                      <BaseInput
-                        v-model="clubName"
-                        label="Club Name"
-                        placeholder="Enter your club name"
-                        required
-                        :error="club_name"
-                      />
+                  <FormInput name="club_name" label="Club Name" placeholder="Enter your club name" required />
 
-                  </div>
-                  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <!-- First Name -->
-                    <div class="sm:col-span-1">
-                        <BaseInput
-                          v-model="firstName"
-                          label="First Name"
-                          placeholder="Enter your First Name"
-                          required
-                          :error="first_name"
-                        />
-                    </div>
-                    <!-- Last Name -->
-                    <div class="sm:col-span-1">
-                        <BaseInput
-                          v-model="lastName"
-                          label="Last Name"
-                          placeholder="Enter your Last Name"
-                          required
-                          :error="last_name"
-                        />
-                    </div>
-                  </div>
-                  <!-- Email -->
-                  <div>
-                    <BaseInput
-                      v-model="email"
-                      label="Email"
-                      placeholder="Enter your E-mail"
-                      required
-                      :error="email"
-                    />                   
+                  <FormInput name="name" label="Your Name" placeholder="Enter your name" required />
 
-                  </div>
-                  <!-- Password -->
-                  <div>
-                    <PasswordInput
-                      v-model="form.password"
-                      id="password"
-                      label="Password"
-                      placeholder="Enter your password"
-                      :live-validation="true"
-                      required
-                    />
-                  </div>
+                  <FormInput name="email" type="email" label="Email" placeholder="Enter your email" required />
 
-                  <div>
-                    <PasswordInput
-                      v-model="form.password_confirmation"
-                      id="password_confirmation"
-                      label="Confirm your Password"
-                      placeholder="Confirm your password"
-                      :match-with="form.password"
-                      :live-validation="false"
-                      required
-                    />
-                  </div>
-                  <!-- Checkbox -->
-                  <div>
-                    <div>
-                      <label
-                        for="checkboxLabelOne"
-                        class="flex items-start text-sm font-normal text-gray-700 cursor-pointer select-none dark:text-gray-400"
-                      >
-                        <div class="relative">
-                          <input v-model="agreeToTerms" type="checkbox" id="checkboxLabelOne" class="sr-only" />
-                          <div
-                            :class="
-                              agreeToTerms
-                                ? 'border-brand-500 bg-brand-500'
-                                : 'bg-transparent border-gray-300 dark:border-gray-700'
-                            "
-                            class="mr-3 flex h-5 w-5 items-center justify-center rounded-md border-[1.25px]"
-                          >
-                            <span :class="agreeToTerms ? '' : 'opacity-0'">
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 14 14"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                              >
-                                <path
-                                  d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
-                                  stroke="white"
-                                  stroke-width="1.94437"
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                />
-                              </svg>
-                            </span>
-                          </div>
-                        </div>
-                        <p class="inline-block font-normal text-gray-500 dark:text-gray-400">
-                          By creating an account means you agree to the
-                          <a href="#" target="_blank" class="text-gray-800 dark:text-white/90"> Terms and Conditions, </a>
-                          and our
-                          <a href="#" target="_blank" class="text-gray-800 dark:text-white"> Privacy Policy </a>
-                        </p>
-                      </label>
-                    </div>
-                  </div>
-                  <!-- Button -->
+                  <FormPasswordInput name="password" label="Password" placeholder="Enter your password" required />
+
+                  <FormPasswordInput
+                    name="password_confirmation"
+                    label="Confirm Password"
+                    placeholder="Confirm your password"
+                    required
+                    :show-strength="false"
+                  />
+
+                  <FormCheckbox name="agreeToTerms">
+                    By creating an account means you agree to the
+                    <a href="#" target="_blank" class="text-gray-800 dark:text-white/90">Terms and Conditions</a>
+                    and our
+                    <a href="#" target="_blank" class="text-gray-800 dark:text-white">Privacy Policy</a>
+                  </FormCheckbox>
+
                   <div>
                     <button
                       type="submit"
-                      class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+                      :disabled="isSubmitting"
+                      class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Sign Up
+                      <span v-if="!isSubmitting">Sign Up</span>
+                      <span v-else class="flex items-center gap-2">
+                        <svg
+                          class="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4"
+                          ></circle>
+                          <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Signing up...
+                      </span>
                     </button>
                   </div>
                 </div>
-              </form>
+              </Form>
+
               <div class="mt-5">
                 <p class="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                   Already have an account?
-                  <NuxtLink to="/auth/signin" class="text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                    >Sign In</NuxtLink
-                  >
+                  <NuxtLink to="/auth/signin" class="text-brand-500 hover:text-brand-600 dark:text-brand-400">
+                    Sign In
+                  </NuxtLink>
                 </p>
               </div>
             </div>
           </div>
         </div>
+
         <div class="lg:w-1/2 w-full h-full bg-brand-950 dark:bg-white/5 lg:grid items-center hidden relative">
           <div class="items-center justify-center flex z-1">
             <common-grid-shape />
             <div class="flex flex-col items-center max-w-xs">
-              <router-link to="/" class="block mb-4">
-                <img width="{231}" height="{48}" src="/images/logo/auth-logo.svg" alt="Logo" />
-              </router-link>
-              <p class="text-center text-gray-400 dark:text-white/60">
-                Free and Open-Source Tailwind CSS Admin Dashboard Template
-              </p>
+              <NuxtLink to="/" class="block mb-4">
+                <img width="231" height="48" src="/images/logo/auth-logo.svg" alt="Logo" />
+              </NuxtLink>
+              <p class="text-center text-gray-400 dark:text-white/60">Your Club Needs</p>
             </div>
           </div>
         </div>
@@ -222,47 +161,29 @@
     </div>
   </FullScreenLayout>
 </template>
+
 <script setup lang="ts">
-import { reactive } from 'vue'
-import BaseInput from '@/components/forms/BaseInput.vue'
-import PasswordInput from '@/components/forms/PasswordInput.vue'
-import { useValidation } from '@/composables/useValidation'
-import { useFormSubmit } from '@/composables/useFormSubmit'
+import FormCheckbox from '@/components/forms/FormCheckbox.vue';
+import FormInput from '@/components/forms/FormInput.vue';
+import FormPasswordInput from '@/components/forms/FormPasswordInput.vue';
+import { schemas } from '@/utils/validationSchemas';
+import { Form } from 'vee-validate';
 
-const { validations } = useValidation()
+const router = useRouter();
+const { register } = useAuth(); // Use Auth composable
+const schema = schemas.register;
 
-// Form data
-const form = reactive({
-  club_name: '',
-  first_name: '',
-  last_name: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-  agreeToTerms: false
-})
+const handleSubmit = async (values: any, { setErrors }: any) => {
+  const result = await register(values);
 
-// Validation schema
-const schema = {
-  club_name: (v: string) => v ? true : 'Club name is required',
-  first_name: (v: string) => v ? true : 'First name is required',
-  last_name: (v: string) => v ? true : 'Last name is required',
-  email: (v: string) => v ? (validations.email()(v) ? true : 'Invalid email') : 'Email is required',
-  password: (v: string) => v ? (validations.password()(v) ? true : 'Password does not meet requirements') : 'Password is required',
-  password_confirmation: () => (v: string) => v === form.password ? true : 'Passwords do not match',
-  agreeToTerms: (v: boolean) => v ? true : 'You must agree to terms'
-}
+  if (result.success) {
+    await router.push('/auth/signin?registered=true');
+  } else if (result.errors) {
+    setErrors(result.errors); // Map Laravel errors to form
+  }
+};
 
-// Use form submit composable
-const { errors, submit } = useFormSubmit(form, schema)
-
-// Handle form submission
-const handleSubmit = () => {
-  submit(async () => {
-    const api = useNuxtApp().$api
-    await api.post('/register', form)
-    console.log('Form submitted successfully!')
-    // optionally reset form
-  })
-}
+const handleGoogleSignup = () => {
+  console.log('Google signup clicked');
+};
 </script>

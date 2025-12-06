@@ -1,40 +1,40 @@
 {
-    "editor.fontLigatures": true,
-    "editor.fontFamily": "Cartograph CF",
-    "window.zoomLevel": 2,
+  "editor.fontLigatures": true,
+  "editor.fontFamily": "Cartograph CF",
+  "window.zoomLevel": 2,
 
-    "workbench.iconTheme": "bearded-icons",
-    "editor.formatOnPaste": true,
+  "workbench.iconTheme": "bearded-icons",
+  "editor.formatOnPaste": true,
 
-    "editor.lineNumbers": "on",
-    "editor.glyphMargin": true,
+  "editor.lineNumbers": "on",
+  "editor.glyphMargin": true,
 
-    "editor.tokenColorCustomizations": {
-        "textMateRules": [
-            {
-                "scope": "storage.modifier",
-                "settings": { "fontStyle": "italic" }
-            },
-            {
-                "scope": "comment",
-                "settings": { "fontStyle": "italic" }
-            },
-            {
-                "scope": "keyword",
-                "settings": { "fontStyle": "italic" }
-            },
-            {
-                "scope": "string",
-                "settings": { "fontStyle": "italic" }
-            },
-            {
-                "scope": "constant.numeric",
-                "settings": { "fontStyle": "italic" }
-            },
-            {
-                "scope": "support.function",
-                "settings": { "fontStyle": "italic" }
-            }
-        ]
-    }
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": "storage.modifier",
+        "settings": { "fontStyle": "italic" }
+      },
+      {
+        "scope": "comment",
+        "settings": { "fontStyle": "italic" }
+      },
+      {
+        "scope": "keyword",
+        "settings": { "fontStyle": "italic" }
+      },
+      {
+        "scope": "string",
+        "settings": { "fontStyle": "italic" }
+      },
+      {
+        "scope": "constant.numeric",
+        "settings": { "fontStyle": "italic" }
+      },
+      {
+        "scope": "support.function",
+        "settings": { "fontStyle": "italic" }
+      }
+    ]
+  }
 }
