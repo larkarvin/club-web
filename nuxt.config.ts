@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'Raceya Club',
-      titleTemplate: 'Club Management',
+      titleTemplate: '%s — Raceya Club',
       bodyAttrs: {
         class: 'dark:bg-gray-900',
       },
