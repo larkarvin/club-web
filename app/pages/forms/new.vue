@@ -10,6 +10,46 @@
         <FormSettingsModal :is-open="isSettingsOpen" :name="formName" :slug="formSlug" :preview-url="previewUrl"
             :show-cancel="true" save-button-text="Save" @close="isSettingsOpen = false" @save="handleSettingsSave" />
 
+        <!-- VueForm Schema Modal -->
+        <div v-if="isSchemaModalOpen" class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50"
+            @click.self="isSchemaModalOpen = false">
+            <div class="bg-white dark:bg-boxdark rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-6 border-b border-stroke dark:border-strokedark">
+                    <h3 class="text-xl font-semibold text-black dark:text-white">VueForm Schema</h3>
+                    <button @click="isSchemaModalOpen = false"
+                        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6 overflow-auto flex-1">
+                    <pre
+                        class="bg-gray-100 dark:bg-meta-4 p-4 rounded-lg text-sm overflow-x-auto"><code>{{ vueformSchemaFormatted }}</code></pre>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="flex justify-end gap-3 p-6 border-t border-stroke dark:border-strokedark">
+                    <button @click="copySchema"
+                        class="inline-flex items-center justify-center gap-2 rounded-md border border-stroke px-5 py-2.5 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                    </button>
+                    <button @click="isSchemaModalOpen = false"
+                        class="inline-flex items-center justify-center rounded-md bg-brand-500 px-5 py-2.5 text-center font-medium text-white hover:bg-brand-600">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Form Builder Layout -->
         <FormBuilderLayout>
             <!-- Left: Component Library -->
@@ -38,14 +78,27 @@
                 Cancel
             </button>
 
-            <!-- Save Button (Right) -->
-            <button @click="handleSave" :disabled="!canSave"
-                class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-center font-medium text-white hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Form
-            </button>
+            <!-- Right Buttons -->
+            <div class="flex items-center gap-3">
+                <!-- Preview Schema Button -->
+                <button @click="isSchemaModalOpen = true"
+                    class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Preview Schema
+                </button>
+
+                <!-- Save Button -->
+                <button @click="handleSave" :disabled="!canSave"
+                    class="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-3 text-center font-medium text-white hover:bg-brand-600 disabled:bg-opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Form
+                </button>
+            </div>
         </div>
     </admin-layout>
 </template>
@@ -63,6 +116,7 @@ import ComponentLibrary from '~/components/form-builder/library/ComponentLibrary
 import FormCanvas from '~/components/form-builder/canvas/FormCanvas.vue'
 import PropertiesPanel from '~/components/form-builder/properties/PropertiesPanel.vue'
 import { useFormBuilder } from '~/composables/useFormBuilder'
+import { useVueformSchema } from '~/composables/useVueformSchema'
 
 const router = useRouter()
 
@@ -78,9 +132,11 @@ const {
     deleteField,
     selectField,
     deselectField,
-    reorderFields,
-    saveForm
+    reorderFields
 } = useFormBuilder()
+
+// VueForm schema generation
+const { schemaFormatted: vueformSchemaFormatted } = useVueformSchema(fields)
 
 // Initialize with "Untitled Form"
 if (!formName.value) {
@@ -90,6 +146,19 @@ if (!formName.value) {
 
 // Settings modal state
 const isSettingsOpen = ref(false)
+
+// Schema modal state
+const isSchemaModalOpen = ref(false)
+
+// Copy schema to clipboard
+const copySchema = async () => {
+    try {
+        await navigator.clipboard.writeText(vueformSchemaFormatted.value)
+        toast.success('Schema copied to clipboard!')
+    } catch (err) {
+        toast.error('Failed to copy schema')
+    }
+}
 
 // Handle settings save
 const handleSettingsSave = (settings) => {
@@ -120,16 +189,21 @@ const handleDeleteSelectedField = () => {
 
 // Save form
 const handleSave = () => {
-    const result = saveForm()
-
-    if (result.success) {
-        toast.success('Form saved successfully!')
-        console.log('Saved form:', result.data)
-        // TODO: Navigate to forms list or form detail page
-        // router.push('/forms')
-    } else {
-        toast.error(result.error || 'Failed to save form')
+    if (fields.value.length === 0) {
+        toast.error('Please add at least one field to the form')
+        return
     }
+
+    // Check if all fields have labels
+    const fieldsWithoutLabels = fields.value.filter(f => !f.label)
+    if (fieldsWithoutLabels.length > 0) {
+        toast.error('All fields must have a label')
+        return
+    }
+
+    // Show the VueForm schema modal
+    isSchemaModalOpen.value = true
+    toast.success('Form schema generated!')
 }
 
 // Cancel
