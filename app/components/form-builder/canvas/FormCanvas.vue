@@ -9,8 +9,8 @@
                 </span>
             </h3>
         </div>
-        <div class="p-6.5 min-h-[400px] m-3" @dragover.prevent="handleCanvasDragOver" @dragleave="handleCanvasDragLeave"
-            @drop.prevent="handleCanvasDrop" @dragend="handleCanvasDragEnd">
+        <div class="p-6.5 min-h-[500px] m-3" style="pointer-events: all;" @dragover.prevent="handleCanvasDragOver"
+            @dragleave="handleCanvasDragLeave" @drop.prevent="handleCanvasDrop" @dragend="handleCanvasDragEnd">
             <!-- Empty State -->
             <EmptyCanvas v-if="fields.length === 0 && !isDraggingFromLibrary" />
 
@@ -103,7 +103,10 @@ const handleCanvasDrop = (event) => {
     event.preventDefault()
     event.stopPropagation()
 
-    const fieldType = event.dataTransfer.getData('fieldType') || pendingFieldType.value
+    // Priority order: window variable (instant) > dataTransfer > pendingFieldType
+    const fieldType = window.__draggedFieldType || event.dataTransfer.getData('fieldType') || pendingFieldType.value
+
+    console.log('[DROP] window.__draggedFieldType:', window.__draggedFieldType)
     console.log('[DROP] fieldType from getData:', event.dataTransfer.getData('fieldType'))
     console.log('[DROP] pendingFieldType:', pendingFieldType.value)
     console.log('[DROP] Final fieldType:', fieldType)
@@ -125,6 +128,8 @@ const handleCanvasDrop = (event) => {
     isDraggingFromLibrary.value = false
     dragOverIndex.value = null
     pendingFieldType.value = null
+    window.__draggedFieldType = null
+
     console.log('[DROP] States cleared')
 }
 
@@ -185,8 +190,13 @@ const handleFieldDrop = (dropIndex, event) => {
 const shouldShowIndicatorBefore = (index) => {
     if (dragOverIndex.value !== index) return false
 
-    // Don't show if dragging field from same position or position right after
-    if (draggedFieldIndex.value === index || draggedFieldIndex.value === index - 1) {
+    // When dragging from library, always show
+    if (isDraggingFromLibrary.value) return true
+
+    // When reordering existing field:
+    // Don't show indicator at the position right after the dragged field
+    // (because that's effectively the same position)
+    if (draggedFieldIndex.value !== null && draggedFieldIndex.value === index - 1) {
         return false
     }
 
@@ -197,11 +207,8 @@ const shouldShowIndicatorBefore = (index) => {
 const shouldShowIndicatorAfter = () => {
     if (dragOverIndex.value !== props.fields.length) return false
 
-    // Don't show if dragging last field
-    if (draggedFieldIndex.value === props.fields.length - 1) {
-        return false
-    }
-
+    // CHANGED: Always show indicator when dragging, even at same position
+    // This gives visual feedback that reordering is active
     return true
 }
 // Add global dragend listener to catch drag cancellations
@@ -220,5 +227,6 @@ const handleGlobalDragEnd = () => {
     dragOverIndex.value = null
     draggedFieldIndex.value = null
     pendingFieldType.value = null
+    window.__draggedFieldType = null
 }
 </script>
