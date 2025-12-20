@@ -11,8 +11,8 @@ export const FIELD_TYPES = {
       description: '',
       placeholder: '',
       required: false,
-      disabled: false,
-      readonly: false,
+      disabledAfterSubmission: false,
+      minLength: null,
       maxLength: null
     }
   }

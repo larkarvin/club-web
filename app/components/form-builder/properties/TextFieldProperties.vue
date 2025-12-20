@@ -24,13 +24,10 @@
             <!-- Divider -->
             <hr class="border-stroke dark:border-strokedark" />
 
-            <!-- Disabled Switch -->
-            <ToggleSwitch :model-value="localField.disabled" @update:model-value="updateField('disabled', $event)"
-                label="Disabled" />
-
-            <!-- Read Only Switch -->
-            <ToggleSwitch :model-value="localField.readonly" @update:model-value="updateField('readonly', $event)"
-                label="Read Only" />
+            <!-- Disabled After Submission Switch -->
+            <ToggleSwitch :model-value="localField.disabledAfterSubmission"
+                @update:model-value="updateField('disabledAfterSubmission', $event)" label="Disabled After Submission"
+                subtext="Controls if field is editable after submission" />
         </CollapsibleSection>
 
         <!-- VALIDATION Section -->
@@ -38,6 +35,11 @@
             <!-- Required Switch -->
             <ToggleSwitch :model-value="localField.required" @update:model-value="updateField('required', $event)"
                 label="Required" />
+
+            <!-- Min Length -->
+            <BaseInput :model-value="localField.minLength"
+                @update:model-value="updateField('minLength', $event ? parseInt($event) : null)" label="Min Length"
+                type="number" placeholder="e.g., 3" />
 
             <!-- Max Length -->
             <BaseInput :model-value="localField.maxLength"
@@ -127,7 +129,7 @@ const generateFieldName = (label) => {
         .replace(/_+/g, '_') // Replace multiple underscores with single
 }
 
-// Handle delete
+// Handle deleteav
 const handleDelete = () => {
     if (confirm('Are you sure you want to delete this field?')) {
         emit('delete')
