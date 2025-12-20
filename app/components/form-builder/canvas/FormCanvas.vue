@@ -4,214 +4,340 @@
         <div class="border-b border-stroke px-6.5 py-4 dark:border-strokedark">
             <h3 class="font-medium text-black dark:text-white mx-3">
                 Form Preview
-                <span v-if="fields.length > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
-                    ({{ fields.length }} {{ fields.length === 1 ? 'field' : 'fields' }})
+                <span v-if="totalFields > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                    ({{ totalFields }} {{ totalFields === 1 ? 'field' : 'fields' }})
                 </span>
             </h3>
         </div>
-        <div class="p-6.5 min-h-[500px] m-3" style="pointer-events: all;" @dragover.prevent="handleCanvasDragOver"
+        <div class="p-6.5 min-h-[500px] m-3" @dragover.prevent="handleCanvasDragOver"
             @dragleave="handleCanvasDragLeave" @drop.prevent="handleCanvasDrop" @dragend="handleCanvasDragEnd">
             <!-- Empty State -->
-            <EmptyCanvas v-if="fields.length === 0 && !isDraggingFromLibrary" />
+            <EmptyCanvas v-if="rows.length === 0 && !isDraggingFromLibrary" />
 
             <!-- Drop indicator when dragging from library to empty canvas -->
-            <div v-if="fields.length === 0 && isDraggingFromLibrary"
+            <div v-if="rows.length === 0 && isDraggingFromLibrary"
                 class="h-2 bg-success-500 rounded-full animate-pulse"></div>
 
-            <!-- Fields List -->
+            <!-- Rows List -->
             <div v-else class="space-y-4">
-                <template v-for="(field, index) in fields" :key="field.id">
-                    <!-- Drop Indicator (before field) -->
-                    <div v-if="shouldShowIndicatorBefore(index)" class="h-2 bg-success-500 rounded-full animate-pulse">
-                    </div>
+                <template v-for="(row, rowIndex) in rows" :key="row.id">
+                    <!-- Drop Indicator (before row) -->
+                    <div v-if="shouldShowRowIndicatorBefore(rowIndex)"
+                        class="h-2 bg-success-500 rounded-full animate-pulse"></div>
 
-                    <FieldCard :field="field" :index="index" :selected="field.id === selectedId"
-                        :is-dragging="draggedFieldIndex === index" @select="$emit('select', field.id)"
-                        @delete="$emit('delete', field.id)" @drag-start="handleFieldDragStart(index, $event)"
-                        @drag-over="handleFieldDragOver(index, $event)" @drag-end="handleFieldDragEnd"
-                        @drop="handleFieldDrop(index, $event)">
-                        <TextFieldPreview :field="field" />
-                    </FieldCard>
+                    <!-- Row with fields -->
+                    <div class="field-row-container rounded-lg border-2 border-dashed p-3 transition-all cursor-pointer"
+                        :class="[
+                            selectedRowId === row.id
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-transparent hover:border-blue-500'
+                        ]"
+                        @click.self="handleRowClick(row.id)"
+                        @dragover.prevent="handleRowDragOver(rowIndex, $event)"
+                        @drop.prevent="handleRowDrop(rowIndex, $event)">
+
+                        <!-- Row Description (Top) -->
+                        <div v-if="row.description && row.descriptionPosition !== 'bottom'" class="mb-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 px-1">{{ row.description }}</p>
+                        </div>
+
+                        <!-- Fields in Row -->
+                        <div class="flex gap-4">
+                            <template v-for="(field, fieldIndex) in row.fields" :key="field.id">
+                                <!-- Left Drop Zone Indicator -->
+                                <div v-if="shouldShowFieldIndicator(rowIndex, fieldIndex, 'left')"
+                                    class="w-1 bg-success-500 rounded-full animate-pulse flex-shrink-0 self-stretch">
+                                </div>
+
+                                <!-- Field Card -->
+                                <div class="flex-1 min-w-0" :style="{ maxWidth: getFieldWidth(row.fields.length) }">
+                                    <FieldCard :field="field" :index="fieldIndex" :row-index="rowIndex"
+                                        :selected="field.id === selectedId"
+                                        :is-dragging="draggedFieldId === field.id"
+                                        :can-accept-more="canRowAcceptField(rowIndex)"
+                                        :is-dragging-field="draggedFieldId !== null"
+                                        @select="$emit('select', field.id)"
+                                        @delete="$emit('delete', field.id)"
+                                        @drag-start="handleFieldDragStart(rowIndex, fieldIndex, field.id, $event)"
+                                        @drag-over="handleFieldDragOver(rowIndex, fieldIndex, $event)"
+                                        @drag-over-left="setDropTarget(rowIndex, fieldIndex, 'left')"
+                                        @drag-over-right="setDropTarget(rowIndex, fieldIndex, 'right')"
+                                        @drag-over-center="setDropTarget(rowIndex, fieldIndex, 'center')"
+                                        @drag-end="handleFieldDragEnd"
+                                        @drop="(dropData) => handleFieldDrop(rowIndex, fieldIndex, dropData)">
+                                        <TextFieldPreview :field="field" />
+                                    </FieldCard>
+                                </div>
+
+                                <!-- Right Drop Zone Indicator (after last field) -->
+                                <div v-if="fieldIndex === row.fields.length - 1 && shouldShowFieldIndicator(rowIndex, fieldIndex, 'right')"
+                                    class="w-1 bg-success-500 rounded-full animate-pulse flex-shrink-0 self-stretch">
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Row Description (Bottom) -->
+                        <div v-if="row.description && row.descriptionPosition === 'bottom'" class="mt-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 px-1">{{ row.description }}</p>
+                        </div>
+                    </div>
                 </template>
 
-                <!-- Drop Indicator (after last field) -->
-                <div v-if="shouldShowIndicatorAfter()" class="h-2 bg-success-500 rounded-full animate-pulse"></div>
+                <!-- Drop Indicator (after last row) -->
+                <div v-if="shouldShowRowIndicatorAfter()" class="h-2 bg-success-500 rounded-full animate-pulse"></div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import EmptyCanvas from './EmptyCanvas.vue'
 import FieldCard from './FieldCard.vue'
 import TextFieldPreview from '../fields/TextFieldPreview.vue'
 
 const props = defineProps({
-    fields: {
+    rows: {
         type: Array,
         default: () => []
     },
     selectedId: {
         type: String,
         default: null
+    },
+    selectedRowId: {
+        type: String,
+        default: null
     }
 })
 
-const emit = defineEmits(['add-field', 'select', 'delete', 'reorder'])
+const emit = defineEmits(['add-field', 'add-field-to-row', 'select', 'delete', 'reorder-rows', 'move-field', 'select-row'])
 
+// Computed
+const totalFields = computed(() => {
+    return props.rows.reduce((sum, row) => sum + row.fields.length, 0)
+})
+
+// Drag state
 const isDraggingFromLibrary = ref(false)
-const draggedFieldIndex = ref(null)
-const dragOverIndex = ref(null)
-const pendingFieldType = ref(null) // Store field type to prevent race condition
+const draggedFieldId = ref(null)
+const draggedFromRow = ref(null)
+const draggedFromIndex = ref(null)
+const dropRowIndex = ref(null)
+const dropTarget = ref(null) // { rowIndex, fieldIndex, position: 'left'|'right'|'center' }
+const pendingFieldType = ref(null)
+
+// Calculate field width based on count (max 2 columns)
+const getFieldWidth = (fieldCount) => {
+    switch (fieldCount) {
+        case 1: return '100%'
+        case 2: return 'calc(50% - 0.5rem)'
+        default: return '100%'
+    }
+}
+
+// Check if a row can accept a field (considering if we're moving from same row) - max 2 columns
+const canRowAcceptField = (rowIndex) => {
+    const row = props.rows[rowIndex]
+    if (!row) return false
+
+    // If we're dragging a field from the SAME row, count is effectively -1
+    if (draggedFieldId.value && draggedFromRow.value === rowIndex) {
+        return row.fields.length <= 2 // Will be 1 or less after removing
+    }
+
+    // If dragging from a different row, check if target has space
+    if (draggedFieldId.value && draggedFromRow.value !== null) {
+        return row.fields.length < 2
+    }
+
+    // For library drags
+    return row.fields.length < 2
+}
+
+// Set drop target for visual indicators
+const setDropTarget = (rowIndex, fieldIndex, position) => {
+    dropTarget.value = { rowIndex, fieldIndex, position }
+}
+
+// Check if should show field indicator
+const shouldShowFieldIndicator = (rowIndex, fieldIndex, side) => {
+    if (!dropTarget.value) return false
+    if (dropTarget.value.rowIndex !== rowIndex) return false
+    if (dropTarget.value.fieldIndex !== fieldIndex) return false
+    if (dropTarget.value.position !== side) return false
+
+    // Use the same logic as canRowAcceptField
+    return canRowAcceptField(rowIndex) || draggedFieldId.value !== null
+}
 
 // Handle drag from component library to canvas
 const handleCanvasDragOver = (event) => {
     event.preventDefault()
-    const hasFieldType = event.dataTransfer.types.includes('fieldtype')
-    console.log('[DRAGOVER] hasFieldType:', hasFieldType, 'types:', event.dataTransfer.types)
+    // Check for fieldType (browsers normalize to lowercase in types array)
+    const hasFieldType = event.dataTransfer.types.includes('fieldtype') ||
+                         event.dataTransfer.types.includes('fieldType') ||
+                         window.__draggedFieldType
     if (hasFieldType) {
         isDraggingFromLibrary.value = true
-        // Try to get the field type early (works in some browsers)
-        try {
-            const type = event.dataTransfer.getData('fieldType')
-            console.log('[DRAGOVER] Got fieldType:', type)
-            if (type) pendingFieldType.value = type
-        } catch (e) {
-            console.log('[DRAGOVER] Cannot get fieldType during dragover:', e.message)
+        // Use window fallback since getData doesn't work during dragover in some browsers
+        if (window.__draggedFieldType) {
+            pendingFieldType.value = window.__draggedFieldType
         }
     }
 }
 
 const handleCanvasDragLeave = (event) => {
-    // Only reset if leaving the canvas container
-    if (event.target === event.currentTarget) {
-        console.log('[DRAGLEAVE] Leaving canvas - clearing states')
+    // Only clear if actually leaving the canvas entirely (not entering a child)
+    const relatedTarget = event.relatedTarget
+    if (!event.currentTarget.contains(relatedTarget)) {
         isDraggingFromLibrary.value = false
-        dragOverIndex.value = null
+        dropRowIndex.value = null
+        dropTarget.value = null
     }
 }
 
 const handleCanvasDragEnd = () => {
-    console.log('[CANVAS DRAGEND] Clearing states')
-    isDraggingFromLibrary.value = false
-    dragOverIndex.value = null
+    clearDragState()
 }
 
 const handleCanvasDrop = (event) => {
-    console.log('[DROP] Drop event triggered')
     event.preventDefault()
     event.stopPropagation()
 
-    // Priority order: window variable (instant) > dataTransfer > pendingFieldType
-    const fieldType = window.__draggedFieldType || event.dataTransfer.getData('fieldType') || pendingFieldType.value
-
-    console.log('[DROP] window.__draggedFieldType:', window.__draggedFieldType)
-    console.log('[DROP] fieldType from getData:', event.dataTransfer.getData('fieldType'))
-    console.log('[DROP] pendingFieldType:', pendingFieldType.value)
-    console.log('[DROP] Final fieldType:', fieldType)
-    console.log('[DROP] dragOverIndex:', dragOverIndex.value)
+    // Try multiple ways to get the field type
+    let fieldType = window.__draggedFieldType
+    if (!fieldType) {
+        try {
+            fieldType = event.dataTransfer.getData('fieldType')
+        } catch (e) {
+            // Ignore
+        }
+    }
+    if (!fieldType) {
+        fieldType = pendingFieldType.value
+    }
 
     if (fieldType) {
-        console.log('[DROP] Adding field:', fieldType, 'at index:', dragOverIndex.value)
-        // Add field at the drop position
-        if (dragOverIndex.value !== null) {
-            emit('add-field', fieldType, dragOverIndex.value)
+        // Add as new row
+        if (dropRowIndex.value !== null) {
+            emit('add-field', fieldType, dropRowIndex.value)
         } else {
             emit('add-field', fieldType)
         }
-    } else {
-        console.log('[DROP] No fieldType - field NOT added!')
     }
 
-    // Clear states
-    isDraggingFromLibrary.value = false
-    dragOverIndex.value = null
-    pendingFieldType.value = null
-    window.__draggedFieldType = null
-
-    console.log('[DROP] States cleared')
+    clearDragState()
 }
 
-// Handle field reordering
-const handleFieldDragStart = (index, event) => {
-    draggedFieldIndex.value = index
-    isDraggingFromLibrary.value = false
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('fieldIndex', index.toString())
-}
-
-const handleFieldDragOver = (index, event) => {
+// Handle row-level drag over
+const handleRowDragOver = (rowIndex, event) => {
     event.preventDefault()
-    event.stopPropagation()
 
-    // Determine if we should show indicator above or below the current field
     const rect = event.currentTarget.getBoundingClientRect()
-    const midpoint = rect.top + rect.height / 2
+    const y = event.clientY - rect.top
+    const height = rect.height
 
-    if (event.clientY < midpoint) {
-        // Show indicator above this field
-        dragOverIndex.value = index
+    // Top half = insert before, bottom half = insert after
+    if (y < height / 2) {
+        dropRowIndex.value = rowIndex
     } else {
-        // Show indicator below this field
-        dragOverIndex.value = index + 1
+        dropRowIndex.value = rowIndex + 1
     }
+}
+
+const handleRowDrop = (rowIndex, event) => {
+    // Handled by field drop or canvas drop
+}
+
+// Row selection
+const handleRowClick = (rowId) => {
+    emit('select-row', rowId)
+}
+
+// Field drag handlers
+const handleFieldDragStart = (rowIndex, fieldIndex, fieldId, event) => {
+    draggedFieldId.value = fieldId
+    draggedFromRow.value = rowIndex
+    draggedFromIndex.value = fieldIndex
+    isDraggingFromLibrary.value = false
+}
+
+const handleFieldDragOver = (rowIndex, fieldIndex, event) => {
+    event.preventDefault()
 }
 
 const handleFieldDragEnd = () => {
-    draggedFieldIndex.value = null
-    dragOverIndex.value = null
-    isDraggingFromLibrary.value = false
+    clearDragState()
 }
 
-const handleFieldDrop = (dropIndex, event) => {
-    event.preventDefault()
-    event.stopPropagation()
+const handleFieldDrop = (rowIndex, fieldIndex, dropData) => {
+    // Capture values before they get cleared
+    const currentDraggedFieldId = draggedFieldId.value
+    const currentFromRow = draggedFromRow.value
+    const currentFromIndex = draggedFromIndex.value
 
-    const dragIndex = parseInt(event.dataTransfer.getData('fieldIndex'))
+    // Get field type - prefer from dropData (captured at drop time), then window, then pending
+    let fieldType = dropData?.fieldType || window.__draggedFieldType || pendingFieldType.value
 
-    if (!isNaN(dragIndex) && dragIndex !== dropIndex) {
-        // Calculate the actual drop position
-        let actualDropIndex = dragOverIndex.value !== null ? dragOverIndex.value : dropIndex
+    const position = dropData?.position || 'center'
 
-        // Adjust for dropping after the dragged item
-        if (dragIndex < actualDropIndex) {
-            actualDropIndex--
+    // If dropping from library (new field) - fieldType exists and no field is being dragged
+    if (fieldType && !currentDraggedFieldId) {
+        if (position === 'left' || position === 'right') {
+            // Add to existing row
+            emit('add-field-to-row', fieldType, rowIndex, position, fieldIndex)
+        } else {
+            // Add as new row below
+            emit('add-field', fieldType, rowIndex + 1)
         }
-
-        emit('reorder', dragIndex, actualDropIndex)
+    }
+    // If reordering existing field
+    else if (currentDraggedFieldId) {
+        emit('move-field', {
+            fromRowIndex: currentFromRow,
+            fromFieldIndex: currentFromIndex,
+            toRowIndex: rowIndex,
+            toFieldIndex: fieldIndex,
+            position
+        })
     }
 
-    draggedFieldIndex.value = null
-    dragOverIndex.value = null
+    clearDragState()
 }
 
-// Helper to determine if indicator should show before a field
-const shouldShowIndicatorBefore = (index) => {
-    if (dragOverIndex.value !== index) return false
-
-    // When dragging from library, always show
-    if (isDraggingFromLibrary.value) return true
-
-    // When reordering existing field:
-    // Don't show indicator at the position right after the dragged field
-    // (because that's effectively the same position)
-    if (draggedFieldIndex.value !== null && draggedFieldIndex.value === index - 1) {
+// Helper to show row indicators
+const shouldShowRowIndicatorBefore = (index) => {
+    if (dropRowIndex.value !== index) return false
+    if (!isDraggingFromLibrary.value && draggedFieldId.value === null) return false
+    // Only show for new row drops (center position or no specific target)
+    if (dropTarget.value && (dropTarget.value.position === 'left' || dropTarget.value.position === 'right')) {
         return false
     }
-
     return true
 }
 
-// Helper to determine if indicator should show after last field
-const shouldShowIndicatorAfter = () => {
-    if (dragOverIndex.value !== props.fields.length) return false
-
-    // CHANGED: Always show indicator when dragging, even at same position
-    // This gives visual feedback that reordering is active
+const shouldShowRowIndicatorAfter = () => {
+    if (dropRowIndex.value !== props.rows.length) return false
+    if (!isDraggingFromLibrary.value && draggedFieldId.value === null) return false
+    if (dropTarget.value && (dropTarget.value.position === 'left' || dropTarget.value.position === 'right')) {
+        return false
+    }
     return true
 }
-// Add global dragend listener to catch drag cancellations
+
+const clearDragState = () => {
+    isDraggingFromLibrary.value = false
+    draggedFieldId.value = null
+    draggedFromRow.value = null
+    draggedFromIndex.value = null
+    dropRowIndex.value = null
+    dropTarget.value = null
+    pendingFieldType.value = null
+    window.__draggedFieldType = null
+}
+
+// Global dragend listener
 onMounted(() => {
     window.addEventListener('dragend', handleGlobalDragEnd)
 })
@@ -221,12 +347,6 @@ onUnmounted(() => {
 })
 
 const handleGlobalDragEnd = () => {
-    console.log('[GLOBAL DRAGEND] Clearing all drag states')
-    // Clear all drag states when any drag operation ends
-    isDraggingFromLibrary.value = false
-    dragOverIndex.value = null
-    draggedFieldIndex.value = null
-    pendingFieldType.value = null
-    window.__draggedFieldType = null
+    clearDragState()
 }
 </script>

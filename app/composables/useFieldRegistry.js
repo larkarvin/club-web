@@ -6,14 +6,14 @@ export const FIELD_TYPES = {
     icon: '📝',
     defaultConfig: {
       type: 'text',
-      name: '',
       label: '',
       description: '',
       placeholder: '',
       required: false,
       disabledAfterSubmission: false,
-      minLength: null,
-      maxLength: null
+      minLength: 3,
+      maxLength: 100,
+      columns: 12 // 12 = full width, 6 = half, 4 = third
     }
   }
   // Add more field types here in the future:

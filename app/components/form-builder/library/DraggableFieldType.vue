@@ -41,17 +41,17 @@ const emit = defineEmits(['add-field', 'dragend'])
 const isDragging = ref(false)
 
 const handleDragStart = (event) => {
-    console.log('[LIBRARY DRAGSTART] Starting drag for type:', props.type)
     isDragging.value = true
     // Set data to transfer
     event.dataTransfer.effectAllowed = 'copy'
     event.dataTransfer.setData('fieldType', props.type)
-    console.log('[LIBRARY DRAGSTART] Set fieldType in dataTransfer:', props.type)
+    // Also store in window for cross-browser compatibility (some browsers can't read dataTransfer during dragover)
+    window.__draggedFieldType = props.type
 }
 
 const handleDragEnd = () => {
-    console.log('[LIBRARY DRAGEND] Drag ended')
     isDragging.value = false
+    window.__draggedFieldType = null
     emit('dragend')
 }
 </script>

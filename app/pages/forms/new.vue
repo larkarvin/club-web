@@ -59,14 +59,15 @@
 
             <!-- Center: Canvas -->
             <template #canvas>
-                <FormCanvas :fields="fields" :selected-id="selectedFieldId" @add-field="addField" @select="selectField"
-                    @delete="deleteField" @reorder="reorderFields" />
+                <FormCanvas :rows="rows" :selected-id="selectedFieldId" :selected-row-id="selectedRowId"
+                    @add-field="addField" @add-field-to-row="addFieldToRow" @select="handleSelectField"
+                    @delete="deleteField" @move-field="handleMoveField" @select-row="handleSelectRow" />
             </template>
 
             <!-- Right: Properties Panel -->
             <template #properties>
-                <PropertiesPanel :field="selectedField" @update="handleUpdateField"
-                    @delete="handleDeleteSelectedField" />
+                <PropertiesPanel :field="selectedField" :row="selectedRow" @update="handleUpdateField"
+                    @delete="handleDeleteSelectedField" @update-row="handleUpdateRow" />
             </template>
         </FormBuilderLayout>
 
@@ -123,16 +124,18 @@ const router = useRouter()
 const {
     formName,
     formSlug,
+    rows,
     fields,
     selectedFieldId,
     selectedField,
     previewUrl,
     addField,
+    addFieldToRow,
+    moveFieldInRow,
     updateField,
     deleteField,
     selectField,
-    deselectField,
-    reorderFields
+    deselectField
 } = useFormBuilder()
 
 // VueForm schema generation
@@ -149,6 +152,15 @@ const isSettingsOpen = ref(false)
 
 // Schema modal state
 const isSchemaModalOpen = ref(false)
+
+// Row selection state
+const selectedRowId = ref(null)
+
+// Get selected row object
+const selectedRow = computed(() => {
+    if (!selectedRowId.value) return null
+    return rows.value.find(r => r.id === selectedRowId.value) || null
+})
 
 // Copy schema to clipboard
 const copySchema = async () => {
@@ -219,20 +231,53 @@ const handleCancel = () => {
     }
 }
 
-// Click outside to deselect field
+// Click outside to deselect field and row
 const handleLayoutClick = (event) => {
-    // Check if click is outside field card and properties panel
+    // Check if click is outside field card, properties panel, and row container
     const isFieldCard = event.target.closest('.field-card')
     const isPropertiesPanel = event.target.closest('.properties-panel')
+    const isRowContainer = event.target.closest('.field-row-container')
 
-    if (!isFieldCard && !isPropertiesPanel) {
+    if (!isFieldCard && !isPropertiesPanel && !isRowContainer) {
         deselectField()
+        selectedRowId.value = null
     }
 }
 
 // Handle dragend from library to clear indicators
 const handleLibraryDragEnd = () => {
     // This will be handled by FormCanvas's dragend handler
-    // but we can add logic here if needed
+}
+
+// Handle move field between rows
+const handleMoveField = (moveData) => {
+    moveFieldInRow(
+        moveData.fromRowIndex,
+        moveData.fromFieldIndex,
+        moveData.toRowIndex,
+        moveData.position,
+        moveData.toFieldIndex
+    )
+}
+
+// Handle field selection (deselect row when field is selected)
+const handleSelectField = (fieldId) => {
+    selectField(fieldId)
+    selectedRowId.value = null
+}
+
+// Handle row selection
+const handleSelectRow = (rowId) => {
+    selectedRowId.value = rowId
+    deselectField()
+}
+
+// Handle row update from properties panel
+const handleUpdateRow = (updatedRow) => {
+    const rowIndex = rows.value.findIndex(r => r.id === updatedRow.id)
+    if (rowIndex !== -1) {
+        // Update the row properties
+        rows.value[rowIndex] = { ...rows.value[rowIndex], ...updatedRow }
+    }
 }
 </script>

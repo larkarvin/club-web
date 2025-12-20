@@ -22,6 +22,7 @@ export function useVueformSchema(fields) {
                 label: field.label || undefined,
                 placeholder: field.placeholder || undefined,
                 description: field.description || undefined,
+                columns: field.columns && field.columns < 12 ? field.columns : undefined,
                 disabledAfterSubmission: field.disabledAfterSubmission || undefined,
                 rules: rules.length > 0 ? rules.join('|') : undefined,
             }
