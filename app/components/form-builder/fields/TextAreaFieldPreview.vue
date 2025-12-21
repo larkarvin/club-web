@@ -16,7 +16,7 @@
         <div class="relative">
             <textarea :placeholder="field.placeholder || 'Enter text...'" :disabled="field.disabled || true"
                 :readonly="field.readonly" :maxlength="field.maxLength" :minlength="field.minLength" rows="2"
-                :class="inputClasses"></textarea>
+                :class="inputClasses" style="height:5em"></textarea>
 
             <!-- Disabled indicator -->
             <div v-if="field.disabled"

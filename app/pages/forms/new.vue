@@ -7,16 +7,17 @@
         <FormBuilderTopBar v-model="formName" @open-settings="isSettingsOpen = true" />
 
         <!-- Form Settings Modal -->
-        <FormSettingsModal :is-open="isSettingsOpen" :name="formName" :slug="formSlug" :preview-url="previewUrl"
-            :show-cancel="true" save-button-text="Save" @close="isSettingsOpen = false" @save="handleSettingsSave" />
+        <FormSettingsModal :is-open="isSettingsOpen" :settings="formSettings" :preview-url="previewUrl"
+            :show-cancel="true" save-button-text="Save" @close="isSettingsOpen = false" @save="handleSettingsSave"
+            @save-form="handleSaveFormFromSettings" />
 
-        <!-- VueForm Schema Modal -->
+        <!-- API Payload Preview Modal -->
         <div v-if="isSchemaModalOpen" class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50"
             @click.self="isSchemaModalOpen = false">
             <div class="bg-white dark:bg-boxdark rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between p-6 border-b border-stroke dark:border-strokedark">
-                    <h3 class="text-xl font-semibold text-black dark:text-white">VueForm Schema</h3>
+                    <h3 class="text-xl font-semibold text-black dark:text-white">API Payload Preview</h3>
                     <button @click="isSchemaModalOpen = false"
                         class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -29,12 +30,12 @@
                 <!-- Modal Body -->
                 <div class="p-6 overflow-auto flex-1">
                     <pre
-                        class="bg-gray-100 dark:bg-meta-4 p-4 rounded-lg text-sm overflow-x-auto"><code>{{ vueformSchemaFormatted }}</code></pre>
+                        class="bg-gray-100 dark:bg-meta-4 p-4 rounded-lg text-sm overflow-x-auto"><code>{{ apiPayloadFormatted }}</code></pre>
                 </div>
 
                 <!-- Modal Footer -->
                 <div class="flex justify-end gap-3 p-6 border-t border-stroke dark:border-strokedark">
-                    <button @click="copySchema"
+                    <button @click="copyPayload"
                         class="inline-flex items-center justify-center gap-2 rounded-md border border-stroke px-5 py-2.5 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -80,14 +81,14 @@
 
             <!-- Right Buttons -->
             <div class="flex items-center gap-3">
-                <!-- Preview Schema Button -->
+                <!-- Preview Payload Button -->
                 <button @click="isSchemaModalOpen = true"
                     class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
-                    Preview Schema
+                    Preview Payload
                 </button>
 
                 <!-- Save Button -->
@@ -121,12 +122,9 @@ import { useVueformSchema } from '~/composables/useVueformSchema'
 const router = useRouter()
 
 const {
-    formName,
-    formSlug,
     fields,
     selectedFieldId,
     selectedField,
-    previewUrl,
     addField,
     updateField,
     deleteField,
@@ -134,14 +132,41 @@ const {
     deselectField
 } = useFormBuilder()
 
-// VueForm schema generation
-const { schemaFormatted: vueformSchemaFormatted } = useVueformSchema(fields)
+// Form settings
+const formSettings = ref({
+    title: 'Untitled Form',
+    slug: 'untitled-form',
+    description: '',
+    processingFee: 0,
+    enabled: true,
+    submissionDeadline: null
+})
 
-// Initialize with "Untitled Form"
-if (!formName.value) {
-    formName.value = 'Untitled Form'
-    formSlug.value = 'untitled-form'
-}
+// Computed form name for top bar
+const formName = computed({
+    get: () => formSettings.value.title,
+    set: (val) => { formSettings.value.title = val }
+})
+
+// Preview URL
+const previewUrl = computed(() => `/forms/${formSettings.value.slug || 'form-slug'}`)
+
+// VueForm schema generation
+const { schema: vueformSchema } = useVueformSchema(fields)
+
+// API payload computed property
+const apiPayload = computed(() => ({
+    title: formSettings.value.title,
+    slug: formSettings.value.slug,
+    description: formSettings.value.description,
+    processingFee: formSettings.value.processingFee,
+    enabled: formSettings.value.enabled,
+    submissionDeadline: formSettings.value.submissionDeadline,
+    schema: vueformSchema.value,
+    fields: fields.value
+}))
+
+const apiPayloadFormatted = computed(() => JSON.stringify(apiPayload.value, null, 2))
 
 // Settings modal state
 const isSettingsOpen = ref(false)
@@ -149,27 +174,70 @@ const isSettingsOpen = ref(false)
 // Schema modal state
 const isSchemaModalOpen = ref(false)
 
-// Copy schema to clipboard
-const copySchema = async () => {
+// Copy payload to clipboard
+const copyPayload = async () => {
     try {
-        await navigator.clipboard.writeText(vueformSchemaFormatted.value)
-        toast.success('Schema copied to clipboard!')
+        await navigator.clipboard.writeText(apiPayloadFormatted.value)
+        toast.success('Payload copied to clipboard!')
     } catch (err) {
-        toast.error('Failed to copy schema')
+        toast.error('Failed to copy payload')
     }
 }
 
-// Handle settings save
+// Handle settings save (just updates local settings)
 const handleSettingsSave = (settings) => {
-    formName.value = settings.name
-    formSlug.value = settings.slug
+    formSettings.value = { ...settings }
     isSettingsOpen.value = false
     toast.success('Form settings updated!')
 }
 
-// Can save if form name and slug are filled
+// Save form API call
+const saveFormToApi = async () => {
+    // Use the computed apiPayload
+    const payload = apiPayload.value
+
+    try {
+        // TODO: Replace with your actual API endpoint
+        // const response = await fetch('/api/forms', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify(payload)
+        // })
+        //
+        // if (!response.ok) {
+        //     throw new Error('Failed to save form')
+        // }
+        //
+        // const data = await response.json()
+        // toast.success('Form saved successfully!')
+        // router.push(`/forms/${data.id}`)
+
+        // For now, just log the payload and show success
+        console.log('Form payload to save:', payload)
+        toast.success('Form saved successfully!')
+        isSettingsOpen.value = false
+
+        // Optionally redirect to forms list
+        // router.push('/forms')
+    } catch (error) {
+        console.error('Error saving form:', error)
+        toast.error('Failed to save form. Please try again.')
+    }
+}
+
+// Handle Save Form from settings modal (after confirmation)
+const handleSaveFormFromSettings = (settings) => {
+    // Update local settings first
+    formSettings.value = { ...settings }
+    // Then save to API
+    saveFormToApi()
+}
+
+// Can save if form title and slug are filled
 const canSave = computed(() => {
-    return formName.value && formSlug.value
+    return formSettings.value.title && formSettings.value.slug
 })
 
 // Update selected field
@@ -187,7 +255,7 @@ const handleDeleteSelectedField = () => {
 }
 
 // Save form
-const handleSave = () => {
+const handleSave = async () => {
     if (fields.value.length === 0) {
         toast.error('Please add at least one field to the form')
         return
@@ -200,14 +268,15 @@ const handleSave = () => {
         return
     }
 
-    // Show the VueForm schema modal
-    isSchemaModalOpen.value = true
-    toast.success('Form schema generated!')
+    // Save to API
+    await saveFormToApi()
 }
 
 // Cancel
 const handleCancel = () => {
-    const hasChanges = formName.value !== 'Untitled Form' || formSlug.value !== 'untitled-form' || fields.value.length > 0
+    const hasChanges = formSettings.value.title !== 'Untitled Form' ||
+                       formSettings.value.slug !== 'untitled-form' ||
+                       fields.value.length > 0
 
     if (hasChanges) {
         if (confirm('Are you sure? Any unsaved changes will be lost.')) {

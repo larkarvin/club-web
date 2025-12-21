@@ -22,6 +22,18 @@
             <!-- Select Field Properties -->
             <SelectFieldProperties v-else-if="field.type === 'select'" :field="field"
                 @update:field="$emit('update', $event)" @delete="$emit('delete')" />
+
+            <!-- Email Field Properties (same as text) -->
+            <TextFieldProperties v-else-if="field.type === 'email'" :field="field"
+                @update:field="$emit('update', $event)" @delete="$emit('delete')" />
+
+            <!-- Phone Field Properties (same as text) -->
+            <TextFieldProperties v-else-if="field.type === 'phone'" :field="field"
+                @update:field="$emit('update', $event)" @delete="$emit('delete')" />
+
+            <!-- Number Field Properties -->
+            <NumberFieldProperties v-else-if="field.type === 'number'" :field="field"
+                @update:field="$emit('update', $event)" @delete="$emit('delete')" />
         </div>
     </div>
 </template>
@@ -30,6 +42,7 @@
 import EmptyProperties from './EmptyProperties.vue'
 import TextFieldProperties from './TextFieldProperties.vue'
 import SelectFieldProperties from './SelectFieldProperties.vue'
+import NumberFieldProperties from './NumberFieldProperties.vue'
 
 const props = defineProps({
     field: {

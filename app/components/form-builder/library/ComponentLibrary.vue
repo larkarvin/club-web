@@ -12,6 +12,12 @@
                     @add-field="(type) => $emit('add-field', type)" />
                 <DraggableFieldType type="textarea" label="Text Area" icon="📄"
                     @add-field="(type) => $emit('add-field', type)" />
+                <DraggableFieldType type="email" label="Email" icon="📧"
+                    @add-field="(type) => $emit('add-field', type)" />
+                <DraggableFieldType type="phone" label="Phone Number" icon="📞"
+                    @add-field="(type) => $emit('add-field', type)" />
+                <DraggableFieldType type="number" label="Number" icon="🔢"
+                    @add-field="(type) => $emit('add-field', type)" />
                 <DraggableFieldType type="select" label="Select Option" icon="📋"
                     @add-field="(type) => $emit('add-field', type)" />
             </div>

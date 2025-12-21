@@ -23,6 +23,9 @@
                         <TextFieldPreview v-if="field.type === 'text'" :field="field" />
                         <TextAreaFieldPreview v-else-if="field.type === 'textarea'" :field="field" />
                         <SelectFieldPreview v-else-if="field.type === 'select'" :field="field" />
+                        <EmailFieldPreview v-else-if="field.type === 'email'" :field="field" />
+                        <PhoneFieldPreview v-else-if="field.type === 'phone'" :field="field" />
+                        <NumberFieldPreview v-else-if="field.type === 'number'" :field="field" />
                     </FieldCard>
                 </template>
             </draggable>
@@ -38,6 +41,9 @@ import FieldCard from './FieldCard.vue'
 import TextFieldPreview from '../fields/TextFieldPreview.vue'
 import TextAreaFieldPreview from '../fields/TextAreaFieldPreview.vue'
 import SelectFieldPreview from '../fields/SelectFieldPreview.vue'
+import EmailFieldPreview from '../fields/EmailFieldPreview.vue'
+import PhoneFieldPreview from '../fields/PhoneFieldPreview.vue'
+import NumberFieldPreview from '../fields/NumberFieldPreview.vue'
 
 const props = defineProps({
     fields: {
