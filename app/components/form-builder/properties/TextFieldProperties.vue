@@ -24,28 +24,14 @@
             <!-- Divider -->
             <hr class="border-stroke dark:border-strokedark" />
 
-            <!-- Disabled After Submission Switch -->
-            <ToggleSwitch :model-value="localField.disabledAfterSubmission"
-                @update:model-value="updateField('disabledAfterSubmission', $event)" label="Disabled After Submission"
-                subtext="Controls if field is editable after submission" />
-        </CollapsibleSection>
-
-        <!-- VALIDATION Section -->
-        <CollapsibleSection title="VALIDATION" :default-open="false">
             <!-- Required Switch -->
             <ToggleSwitch :model-value="localField.required" @update:model-value="updateField('required', $event)"
                 label="Required" />
 
-            <!-- Min Length -->
-            <BaseInput :model-value="localField.minLength"
-                @update:model-value="updateField('minLength', $event ? parseInt($event) : null)" label="Min Length"
-                type="number" placeholder="e.g., 3" />
-
-            <!-- Max Length -->
-            <BaseInput :model-value="localField.maxLength"
-                @update:model-value="updateField('maxLength', $event ? parseInt($event) : null)" label="Max Length"
-                type="number" placeholder="e.g., 100" />
-
+            <!-- Disabled After Submission Switch -->
+            <ToggleSwitch :model-value="localField.disabledAfterSubmission"
+                @update:model-value="updateField('disabledAfterSubmission', $event)" label="Disabled After Submission"
+                subtext="Controls if field is editable after submission" />
         </CollapsibleSection>
 
         <!-- Delete Button -->

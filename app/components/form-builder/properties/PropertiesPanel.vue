@@ -14,6 +14,14 @@
             <!-- Text Field Properties -->
             <TextFieldProperties v-else-if="field.type === 'text'" :field="field"
                 @update:field="$emit('update', $event)" @delete="$emit('delete')" />
+
+            <!-- TextArea Field Properties (same as text) -->
+            <TextFieldProperties v-else-if="field.type === 'textarea'" :field="field"
+                @update:field="$emit('update', $event)" @delete="$emit('delete')" />
+
+            <!-- Select Field Properties -->
+            <SelectFieldProperties v-else-if="field.type === 'select'" :field="field"
+                @update:field="$emit('update', $event)" @delete="$emit('delete')" />
         </div>
     </div>
 </template>
@@ -21,6 +29,7 @@
 <script setup>
 import EmptyProperties from './EmptyProperties.vue'
 import TextFieldProperties from './TextFieldProperties.vue'
+import SelectFieldProperties from './SelectFieldProperties.vue'
 
 const props = defineProps({
     field: {

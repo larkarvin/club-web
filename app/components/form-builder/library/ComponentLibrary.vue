@@ -8,8 +8,12 @@
         </div>
         <div class="p-4">
             <div class="space-y-3">
-                <DraggableFieldType type="text" label="Text Input" icon="📝" @add-field="$emit('add-field', 'text')"
-                    @dragend="$emit('dragend')" />
+                <DraggableFieldType type="text" label="Text Input" icon="📝"
+                    @add-field="(type) => $emit('add-field', type)" />
+                <DraggableFieldType type="textarea" label="Text Area" icon="📄"
+                    @add-field="(type) => $emit('add-field', type)" />
+                <DraggableFieldType type="select" label="Select Option" icon="📋"
+                    @add-field="(type) => $emit('add-field', type)" />
             </div>
         </div>
     </div>
@@ -18,5 +22,5 @@
 <script setup>
 import DraggableFieldType from './DraggableFieldType.vue'
 
-defineEmits(['add-field', 'dragend'])
+defineEmits(['add-field'])
 </script>

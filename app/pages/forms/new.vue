@@ -54,13 +54,13 @@
         <FormBuilderLayout>
             <!-- Left: Component Library -->
             <template #library>
-                <ComponentLibrary @add-field="addField" @dragend="handleLibraryDragEnd" />
+                <ComponentLibrary @add-field="addField" />
             </template>
 
             <!-- Center: Canvas -->
             <template #canvas>
-                <FormCanvas :fields="fields" :selected-id="selectedFieldId" @add-field="addField" @select="selectField"
-                    @delete="deleteField" @reorder="reorderFields" />
+                <FormCanvas :fields="fields" :selected-id="selectedFieldId" @select="selectField"
+                    @delete="deleteField" @update:fields="handleFieldsReorder" />
             </template>
 
             <!-- Right: Properties Panel -->
@@ -131,8 +131,7 @@ const {
     updateField,
     deleteField,
     selectField,
-    deselectField,
-    reorderFields
+    deselectField
 } = useFormBuilder()
 
 // VueForm schema generation
@@ -219,6 +218,11 @@ const handleCancel = () => {
     }
 }
 
+// Handle fields reorder from vuedraggable
+const handleFieldsReorder = (newFields) => {
+    fields.value = newFields
+}
+
 // Click outside to deselect field
 const handleLayoutClick = (event) => {
     // Check if click is outside field card and properties panel
@@ -228,11 +232,5 @@ const handleLayoutClick = (event) => {
     if (!isFieldCard && !isPropertiesPanel) {
         deselectField()
     }
-}
-
-// Handle dragend from library to clear indicators
-const handleLibraryDragEnd = () => {
-    // This will be handled by FormCanvas's dragend handler
-    // but we can add logic here if needed
 }
 </script>

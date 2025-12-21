@@ -1,33 +1,19 @@
 <!-- app/components/form-builder/canvas/FieldCard.vue -->
 <template>
-    <div draggable="true" @dragstart="handleDragStart" @dragover.prevent="handleDragOver" @dragend="handleDragEnd"
-        @drop.prevent="handleDrop"
-        class="field-card group relative rounded-lg border bg-white transition-all dark:bg-boxdark cursor-pointer"
+    <div class="field-card group relative rounded-lg border-2 bg-white transition-all dark:bg-boxdark cursor-grab active:cursor-grabbing"
         :class="[
             selected
-                ? 'border-success shadow-md dark:border-success'
-                : 'border-stroke dark:border-strokedark hover:border-gray-400 dark:hover:border-gray-600',
-            isDragging ? 'opacity-50' : 'opacity-100'
-        ]" @click="$emit('select')">
-        <!-- Drag Handle -->
-        <div class="absolute left-3 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing">
-            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="9" cy="5" r="1.5" />
-                <circle cx="9" cy="12" r="1.5" />
-                <circle cx="9" cy="19" r="1.5" />
-                <circle cx="15" cy="5" r="1.5" />
-                <circle cx="15" cy="12" r="1.5" />
-                <circle cx="15" cy="19" r="1.5" />
-            </svg>
-        </div>
+                ? 'border-blue-500 bg-blue-50 shadow-md dark:border-blue-500 dark:bg-blue-900/20'
+                : 'border-stroke dark:border-strokedark hover:border-blue-500 dark:hover:border-blue-500'
+        ]" @click.stop="$emit('select')">
 
-        <!-- Field Content with left padding for drag handle -->
-        <div class="pl-10 pr-4 py-4">
+        <!-- Field Content -->
+        <div class="px-4 py-4">
             <!-- Field Header -->
             <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <span
-                        class="inline-flex items-center rounded-full bg-primary/10 py-1 text-xs font-medium text-primary">
+                        class="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
                         {{ field.type.toUpperCase() }}
                     </span>
                     <span v-if="field.required" class="text-xs text-meta-1">Required</span>
@@ -53,7 +39,7 @@
 </template>
 
 <script setup>
-const props = defineProps({
+defineProps({
     field: {
         type: Object,
         required: true
@@ -65,36 +51,14 @@ const props = defineProps({
     selected: {
         type: Boolean,
         default: false
-    },
-    isDragging: {
-        type: Boolean,
-        default: false
     }
 })
 
-const emit = defineEmits(['select', 'delete', 'drag-start', 'drag-over', 'drag-end', 'drop'])
+const emit = defineEmits(['select', 'delete'])
 
 const handleDelete = () => {
     if (confirm('Are you sure you want to delete this field?')) {
         emit('delete')
     }
-}
-
-const handleDragStart = (event) => {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('fieldIndex', props.index.toString())
-    emit('drag-start', event)
-}
-
-const handleDragOver = (event) => {
-    emit('drag-over', event)
-}
-
-const handleDragEnd = (event) => {
-    emit('drag-end', event)
-}
-
-const handleDrop = (event) => {
-    emit('drop', event)
 }
 </script>

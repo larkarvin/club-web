@@ -1,8 +1,7 @@
 <!-- app/components/form-builder/library/DraggableFieldType.vue -->
 <template>
-    <div draggable="true" @dragstart="handleDragStart" @dragend="handleDragEnd"
-        class="group cursor-grab active:cursor-grabbing rounded-lg border border-stroke bg-white px-4 py-3 transition-all hover:shadow-md hover:border-primary dark:border-strokedark dark:bg-boxdark dark:hover:border-primary"
-        :class="{ 'opacity-50': isDragging }">
+    <div
+        class="group rounded-lg border border-stroke bg-white px-4 py-3 transition-all hover:shadow-md hover:border-blue-500 dark:border-strokedark dark:bg-boxdark dark:hover:border-blue-500">
         <div class="flex items-center gap-3">
             <span class="text-2xl">{{ icon }}</span>
             <div class="flex-1">
@@ -10,18 +9,21 @@
                     {{ label }}
                 </p>
             </div>
-            <svg class="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none"
-                stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
+            <!-- Add Field Button (always visible, blue) -->
+            <button @click="$emit('add-field', type)"
+                class="flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
+                title="Add field">
+                <span>Add Field</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
-const props = defineProps({
+defineProps({
     type: {
         type: String,
         required: true
@@ -36,22 +38,5 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['add-field', 'dragend'])
-
-const isDragging = ref(false)
-
-const handleDragStart = (event) => {
-    console.log('[LIBRARY DRAGSTART] Starting drag for type:', props.type)
-    isDragging.value = true
-    // Set data to transfer
-    event.dataTransfer.effectAllowed = 'copy'
-    event.dataTransfer.setData('fieldType', props.type)
-    console.log('[LIBRARY DRAGSTART] Set fieldType in dataTransfer:', props.type)
-}
-
-const handleDragEnd = () => {
-    console.log('[LIBRARY DRAGEND] Drag ended')
-    isDragging.value = false
-    emit('dragend')
-}
+defineEmits(['add-field'])
 </script>
