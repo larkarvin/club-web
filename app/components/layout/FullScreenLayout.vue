@@ -3,7 +3,10 @@
     <main>
       <slot></slot>
     </main>
+    <Toaster position="top-right" :richColors="true" />
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { Toaster } from 'vue-sonner';
+</script>

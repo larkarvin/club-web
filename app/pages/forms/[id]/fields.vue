@@ -1,0 +1,462 @@
+<!-- pages/forms/[id]/fields.vue -->
+<template>
+    <admin-layout @click="handleLayoutClick">
+        <page-breadcrumb pageTitle="Edit Form Fields" />
+
+        <!-- Loading state -->
+        <div v-if="isLoading" class="flex items-center justify-center py-20">
+            <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+
+        <template v-else>
+            <!-- Top Bar: Inline Editable Name + Settings Button -->
+            <FormBuilderTopBar v-model="formName" @open-settings="isSettingsOpen = true" />
+
+            <!-- Form Settings Modal -->
+            <FormSettingsModal
+                :is-open="isSettingsOpen"
+                :settings="formSettings"
+                :preview-url="previewUrl"
+                :show-cancel="true"
+                save-button-text="Save Settings"
+                @close="isSettingsOpen = false"
+                @save="handleSettingsSave"
+                @save-form="handleSaveFormFromSettings"
+            />
+
+            <!-- API Payload Preview Modal -->
+            <div v-if="isSchemaModalOpen" class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50"
+                @click.self="isSchemaModalOpen = false">
+                <div class="bg-white dark:bg-boxdark rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-stroke dark:border-strokedark">
+                        <h3 class="text-xl font-semibold text-black dark:text-white">API Payload Preview</h3>
+                        <button @click="isSchemaModalOpen = false"
+                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="p-6 overflow-auto flex-1">
+                        <pre
+                            class="bg-gray-100 dark:bg-meta-4 p-4 rounded-lg text-sm overflow-x-auto"><code>{{ apiPayloadFormatted }}</code></pre>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="flex justify-end gap-3 p-6 border-t border-stroke dark:border-strokedark">
+                        <button @click="copyPayload"
+                            class="inline-flex items-center justify-center gap-2 rounded-md border border-stroke px-5 py-2.5 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy
+                        </button>
+                        <button @click="isSchemaModalOpen = false"
+                            class="inline-flex items-center justify-center rounded-md bg-brand-500 px-5 py-2.5 text-center font-medium text-white hover:bg-brand-600">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Builder Layout -->
+            <FormBuilderLayout>
+                <!-- Left: Component Library -->
+                <template #library>
+                    <ComponentLibrary @add-field="handleAddField" />
+                </template>
+
+                <!-- Center: Canvas -->
+                <template #canvas>
+                    <FormCanvas
+                        :fields="fields"
+                        :selected-id="selectedFieldId"
+                        @select="selectField"
+                        @delete="handleDeleteField"
+                        @update:fields="handleFieldsReorder"
+                    />
+                </template>
+
+                <!-- Right: Properties Panel -->
+                <template #properties>
+                    <PropertiesPanel
+                        :field="selectedField"
+                        @update="handleUpdateField"
+                        @delete="handleDeleteSelectedField"
+                    />
+                </template>
+            </FormBuilderLayout>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between items-center mt-6">
+                <!-- Cancel Button (Left) -->
+                <button @click="handleCancel"
+                    class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
+                    Back to Forms
+                </button>
+
+                <!-- Right Buttons -->
+                <div class="flex items-center gap-3">
+                    <!-- Saving indicator -->
+                    <span v-if="isSaving" class="text-sm text-gray-500 flex items-center gap-2">
+                        <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                    </span>
+
+                    <!-- Preview Payload Button -->
+                    <button @click="isSchemaModalOpen = true"
+                        class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        Preview Payload
+                    </button>
+
+                    <!-- Save Button -->
+                    <button @click="handleSaveForm" :disabled="isSaving"
+                        class="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-3 text-center font-medium text-white hover:bg-brand-600 disabled:bg-opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Form
+                    </button>
+                </div>
+            </div>
+        </template>
+    </admin-layout>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { toast } from 'vue-sonner'
+import AdminLayout from '~/components/layout/AdminLayout.vue'
+import PageBreadcrumb from '~/components/common/PageBreadcrumb.vue'
+import FormBuilderTopBar from '~/components/form-builder/FormBuilderTopBar.vue'
+import FormSettingsModal from '~/components/form-builder/FormSettingsModal.vue'
+import FormBuilderLayout from '~/components/form-builder/layout/FormBuilderLayout.vue'
+import ComponentLibrary from '~/components/form-builder/library/ComponentLibrary.vue'
+import FormCanvas from '~/components/form-builder/canvas/FormCanvas.vue'
+import PropertiesPanel from '~/components/form-builder/properties/PropertiesPanel.vue'
+import { useFormBuilder } from '~/composables/useFormBuilder'
+import { useVueformSchema } from '~/composables/useVueformSchema'
+import { useApi } from '~/composables/useApi'
+
+const router = useRouter()
+const route = useRoute()
+const { forms, fields: fieldsApi, clubId } = useApi()
+
+// Get form ID from route
+const formId = computed(() => route.params.id)
+
+// Loading states
+const isLoading = ref(true)
+const isSaving = ref(false)
+
+// Form builder composable
+const {
+    fields,
+    selectedFieldId,
+    selectedField,
+    addField,
+    updateField,
+    deleteField,
+    selectField,
+    deselectField,
+    setFields
+} = useFormBuilder()
+
+// Form settings
+const formSettings = ref({
+    title: '',
+    slug: '',
+    description: '',
+    processingFee: 0,
+    enabled: true,
+    submissionDeadline: null
+})
+
+// Computed form name for top bar
+const formName = computed({
+    get: () => formSettings.value.title,
+    set: (val) => { formSettings.value.title = val }
+})
+
+// Preview URL
+const previewUrl = computed(() => `/forms/${formSettings.value.slug || 'form-slug'}`)
+
+// VueForm schema generation
+const { schema: vueformSchema } = useVueformSchema(fields)
+
+// API payload computed property
+const apiPayload = computed(() => ({
+    title: formSettings.value.title,
+    slug: formSettings.value.slug,
+    description: formSettings.value.description,
+    processingFee: formSettings.value.processingFee,
+    enabled: formSettings.value.enabled,
+    submissionDeadline: formSettings.value.submissionDeadline,
+    schema: vueformSchema.value,
+    fields: fields.value
+}))
+
+const apiPayloadFormatted = computed(() => JSON.stringify(apiPayload.value, null, 2))
+
+// Settings modal state
+const isSettingsOpen = ref(false)
+
+// Schema modal state
+const isSchemaModalOpen = ref(false)
+
+// Load form data on mount
+onMounted(async () => {
+    await loadForm()
+})
+
+// Map API field to local field format
+const mapApiFieldToLocal = (apiField) => ({
+    id: apiField.id,
+    type: apiField.type,
+    label: apiField.label || '',
+    placeholder: apiField.placeholder || '',
+    description: apiField.description || '',
+    required: apiField.required || false,
+    minLength: apiField.min || null,
+    maxLength: apiField.max || null,
+    min: apiField.min || null,
+    max: apiField.max || null,
+    allowDecimal: apiField.allowDecimal || false,
+    disabledAfterSubmission: apiField.disabledAfterSubmission || false,
+    options: apiField.options?.map(opt => ({
+        id: opt.id,
+        value: opt.value,
+        label: opt.label,
+        price: opt.price || 0
+    })) || []
+})
+
+// Map local field to API format
+const mapLocalFieldToApi = (localField) => ({
+    field_key: localField.id,
+    type: localField.type,
+    label: localField.label,
+    placeholder: localField.placeholder,
+    description: localField.description,
+    required: localField.required,
+    min: localField.type === 'number' ? localField.min : localField.minLength,
+    max: localField.type === 'number' ? localField.max : localField.maxLength,
+    allow_decimal: localField.allowDecimal,
+    disabled_after_submission: localField.disabledAfterSubmission,
+    options: localField.options?.map(opt => ({
+        value: opt.value,
+        label: opt.label,
+        price: opt.price || 0
+    })) || []
+})
+
+// Load form from API
+const loadForm = async () => {
+    isLoading.value = true
+
+    try {
+        const response = await forms.get(formId.value)
+        const formData = response.data || response
+
+        // Set form settings
+        formSettings.value = {
+            title: formData.title || '',
+            slug: formData.slug || '',
+            description: formData.description || '',
+            processingFee: formData.processingFee || 0,
+            enabled: formData.enabled !== false,
+            submissionDeadline: formData.submissionDeadline || null
+        }
+
+        // Set fields (map from API format to local format)
+        if (formData.fields && Array.isArray(formData.fields)) {
+            const mappedFields = formData.fields.map(mapApiFieldToLocal)
+            setFields(mappedFields)
+        }
+    } catch (error) {
+        console.error('Error loading form:', error)
+        toast.error('Failed to load form')
+        router.push({ path: '/forms', query: clubId.value ? { club_id: clubId.value } : {} })
+    } finally {
+        isLoading.value = false
+    }
+}
+
+// Copy payload to clipboard
+const copyPayload = async () => {
+    try {
+        await navigator.clipboard.writeText(apiPayloadFormatted.value)
+        toast.success('Payload copied to clipboard!')
+    } catch (err) {
+        toast.error('Failed to copy payload')
+    }
+}
+
+// Handle settings save via API
+const handleSettingsSave = async (settings) => {
+    isSaving.value = true
+
+    try {
+        // Map to API format (snake_case)
+        const apiSettings = {
+            title: settings.title,
+            slug: settings.slug,
+            description: settings.description,
+            processing_fee: settings.processingFee,
+            enabled: settings.enabled,
+            submission_deadline: settings.submissionDeadline
+        }
+        await forms.updateSettings(formId.value, apiSettings)
+        formSettings.value = { ...settings }
+        isSettingsOpen.value = false
+        toast.success('Form settings updated!')
+    } catch (error) {
+        console.error('Error saving settings:', error)
+        toast.error('Failed to save settings')
+    } finally {
+        isSaving.value = false
+    }
+}
+
+// Handle Save Form from settings modal (after confirmation)
+const handleSaveFormFromSettings = async (settings) => {
+    formSettings.value = { ...settings }
+    await handleSaveForm()
+}
+
+// Add field via API
+const handleAddField = async (fieldType) => {
+    const newField = addField(fieldType)
+    const apiField = mapLocalFieldToApi(newField)
+
+    try {
+        const response = await fieldsApi.create(formId.value, apiField)
+        const responseData = response.data || response
+        // Update local field with server response (use server-generated ID)
+        if (responseData.id) {
+            updateField(newField.id, { ...newField, id: responseData.id })
+        }
+    } catch (error) {
+        console.error('Error adding field:', error)
+        toast.error('Failed to add field')
+        // Remove the field if API call failed
+        deleteField(newField.id)
+    }
+}
+
+// Update field via API (debounced)
+let updateTimeout = null
+const handleUpdateField = async (updatedField) => {
+    if (!selectedFieldId.value) return
+
+    // Update local state immediately
+    updateField(selectedFieldId.value, updatedField)
+
+    // Debounce API call
+    if (updateTimeout) clearTimeout(updateTimeout)
+    updateTimeout = setTimeout(async () => {
+        try {
+            const apiField = mapLocalFieldToApi(updatedField)
+            await fieldsApi.update(formId.value, selectedFieldId.value, apiField)
+        } catch (error) {
+            console.error('Error updating field:', error)
+            toast.error('Failed to update field')
+        }
+    }, 500)
+}
+
+// Delete field via API
+const handleDeleteField = async (fieldId) => {
+    deleteField(fieldId)
+
+    try {
+        await fieldsApi.delete(formId.value, fieldId)
+    } catch (error) {
+        console.error('Error deleting field:', error)
+        toast.error('Failed to delete field')
+        // Reload form to restore state
+        await loadForm()
+    }
+}
+
+// Delete selected field
+const handleDeleteSelectedField = () => {
+    if (selectedFieldId.value) {
+        handleDeleteField(selectedFieldId.value)
+    }
+}
+
+// Handle fields reorder via API
+const handleFieldsReorder = async (newFields) => {
+    fields.value = newFields
+
+    try {
+        // API expects field_key array for reordering
+        const fieldOrder = newFields.map(f => f.id)
+        await fieldsApi.reorder(formId.value, fieldOrder)
+    } catch (error) {
+        console.error('Error reordering fields:', error)
+        toast.error('Failed to reorder fields')
+    }
+}
+
+// Save entire form
+const handleSaveForm = async () => {
+    if (fields.value.length === 0) {
+        toast.error('Please add at least one field to the form')
+        return
+    }
+
+    const fieldsWithoutLabels = fields.value.filter(f => !f.label)
+    if (fieldsWithoutLabels.length > 0) {
+        toast.error('All fields must have a label')
+        return
+    }
+
+    isSaving.value = true
+
+    try {
+        await forms.update(formId.value, apiPayload.value)
+        toast.success('Form saved successfully!')
+        isSettingsOpen.value = false
+    } catch (error) {
+        console.error('Error saving form:', error)
+        toast.error('Failed to save form. Please try again.')
+    } finally {
+        isSaving.value = false
+    }
+}
+
+// Cancel and go back
+const handleCancel = () => {
+    router.push({
+        path: '/forms',
+        query: clubId.value ? { club_id: clubId.value } : {}
+    })
+}
+
+// Click outside to deselect field
+const handleLayoutClick = (event) => {
+    const isFieldCard = event.target.closest('.field-card')
+    const isPropertiesPanel = event.target.closest('.properties-panel')
+
+    if (!isFieldCard && !isPropertiesPanel) {
+        deselectField()
+    }
+}
+</script>

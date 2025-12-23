@@ -1,305 +1,59 @@
 <!-- pages/forms/new.vue -->
 <template>
-    <admin-layout @click="handleLayoutClick">
-        <page-breadcrumb pageTitle="New Form" />
+    <admin-layout>
+        <page-breadcrumb pageTitle="Create New Form" />
 
-        <!-- Top Bar: Inline Editable Name + Settings Button -->
-        <FormBuilderTopBar v-model="formName" @open-settings="isSettingsOpen = true" />
-
-        <!-- Form Settings Modal -->
-        <FormSettingsModal :is-open="isSettingsOpen" :settings="formSettings" :preview-url="previewUrl"
-            :show-cancel="true" save-button-text="Save" @close="isSettingsOpen = false" @save="handleSettingsSave"
-            @save-form="handleSaveFormFromSettings" />
-
-        <!-- API Payload Preview Modal -->
-        <div v-if="isSchemaModalOpen" class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50"
-            @click.self="isSchemaModalOpen = false">
-            <div class="bg-white dark:bg-boxdark rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-                <!-- Modal Header -->
-                <div class="flex items-center justify-between p-6 border-b border-stroke dark:border-strokedark">
-                    <h3 class="text-xl font-semibold text-black dark:text-white">API Payload Preview</h3>
-                    <button @click="isSchemaModalOpen = false"
-                        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Modal Body -->
-                <div class="p-6 overflow-auto flex-1">
-                    <pre
-                        class="bg-gray-100 dark:bg-meta-4 p-4 rounded-lg text-sm overflow-x-auto"><code>{{ apiPayloadFormatted }}</code></pre>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="flex justify-end gap-3 p-6 border-t border-stroke dark:border-strokedark">
-                    <button @click="copyPayload"
-                        class="inline-flex items-center justify-center gap-2 rounded-md border border-stroke px-5 py-2.5 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy
-                    </button>
-                    <button @click="isSchemaModalOpen = false"
-                        class="inline-flex items-center justify-center rounded-md bg-brand-500 px-5 py-2.5 text-center font-medium text-white hover:bg-brand-600">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Form Builder Layout -->
-        <FormBuilderLayout>
-            <!-- Left: Component Library -->
-            <template #library>
-                <ComponentLibrary @add-field="addField" />
-            </template>
-
-            <!-- Center: Canvas -->
-            <template #canvas>
-                <FormCanvas :fields="fields" :selected-id="selectedFieldId" @select="selectField"
-                    @delete="deleteField" @update:fields="handleFieldsReorder" />
-            </template>
-
-            <!-- Right: Properties Panel -->
-            <template #properties>
-                <PropertiesPanel :field="selectedField" @update="handleUpdateField"
-                    @delete="handleDeleteSelectedField" />
-            </template>
-        </FormBuilderLayout>
-
-        <!-- Action Buttons -->
-        <div class="flex justify-between items-center mt-6">
-            <!-- Cancel Button (Left) -->
-            <button @click="handleCancel"
-                class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
-                Cancel
-            </button>
-
-            <!-- Right Buttons -->
-            <div class="flex items-center gap-3">
-                <!-- Preview Payload Button -->
-                <button @click="isSchemaModalOpen = true"
-                    class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                    Preview Payload
-                </button>
-
-                <!-- Save Button -->
-                <button @click="handleSave" :disabled="!canSave"
-                    class="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-3 text-center font-medium text-white hover:bg-brand-600 disabled:bg-opacity-50 disabled:cursor-not-allowed">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Form
-                </button>
-            </div>
+        <!-- Loading state -->
+        <div class="flex flex-col items-center justify-center py-20">
+            <svg class="animate-spin h-10 w-10 text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-600 dark:text-gray-400">Creating new form...</p>
         </div>
     </admin-layout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted } from 'vue'
 import { toast } from 'vue-sonner'
 import AdminLayout from '~/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '~/components/common/PageBreadcrumb.vue'
-import FormBuilderTopBar from '~/components/form-builder/FormBuilderTopBar.vue'
-import FormSettingsModal from '~/components/form-builder/FormSettingsModal.vue'
-import FormBuilderLayout from '~/components/form-builder/layout/FormBuilderLayout.vue'
-import ComponentLibrary from '~/components/form-builder/library/ComponentLibrary.vue'
-import FormCanvas from '~/components/form-builder/canvas/FormCanvas.vue'
-import PropertiesPanel from '~/components/form-builder/properties/PropertiesPanel.vue'
-import { useFormBuilder } from '~/composables/useFormBuilder'
-import { useVueformSchema } from '~/composables/useVueformSchema'
+import { useApi } from '~/composables/useApi'
 
 const router = useRouter()
+const { forms, clubId } = useApi()
 
-const {
-    fields,
-    selectedFieldId,
-    selectedField,
-    addField,
-    updateField,
-    deleteField,
-    selectField,
-    deselectField
-} = useFormBuilder()
-
-// Form settings
-const formSettings = ref({
-    title: 'Untitled Form',
-    slug: 'untitled-form',
-    description: '',
-    processingFee: 0,
-    enabled: true,
-    submissionDeadline: null
+// Create form immediately on mount
+onMounted(async () => {
+    await createForm()
 })
 
-// Computed form name for top bar
-const formName = computed({
-    get: () => formSettings.value.title,
-    set: (val) => { formSettings.value.title = val }
-})
-
-// Preview URL
-const previewUrl = computed(() => `/forms/${formSettings.value.slug || 'form-slug'}`)
-
-// VueForm schema generation
-const { schema: vueformSchema } = useVueformSchema(fields)
-
-// API payload computed property
-const apiPayload = computed(() => ({
-    title: formSettings.value.title,
-    slug: formSettings.value.slug,
-    description: formSettings.value.description,
-    processingFee: formSettings.value.processingFee,
-    enabled: formSettings.value.enabled,
-    submissionDeadline: formSettings.value.submissionDeadline,
-    schema: vueformSchema.value,
-    fields: fields.value
-}))
-
-const apiPayloadFormatted = computed(() => JSON.stringify(apiPayload.value, null, 2))
-
-// Settings modal state
-const isSettingsOpen = ref(false)
-
-// Schema modal state
-const isSchemaModalOpen = ref(false)
-
-// Copy payload to clipboard
-const copyPayload = async () => {
-    try {
-        await navigator.clipboard.writeText(apiPayloadFormatted.value)
-        toast.success('Payload copied to clipboard!')
-    } catch (err) {
-        toast.error('Failed to copy payload')
+const createForm = async () => {
+    if (!clubId.value) {
+        toast.error('No club selected. Please select a club first.')
+        router.push('/clubs')
+        return
     }
-}
-
-// Handle settings save (just updates local settings)
-const handleSettingsSave = (settings) => {
-    formSettings.value = { ...settings }
-    isSettingsOpen.value = false
-    toast.success('Form settings updated!')
-}
-
-// Save form API call
-const saveFormToApi = async () => {
-    // Use the computed apiPayload
-    const payload = apiPayload.value
 
     try {
-        // TODO: Replace with your actual API endpoint
-        // const response = await fetch('/api/forms', {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify(payload)
-        // })
-        //
-        // if (!response.ok) {
-        //     throw new Error('Failed to save form')
-        // }
-        //
-        // const data = await response.json()
-        // toast.success('Form saved successfully!')
-        // router.push(`/forms/${data.id}`)
+        // Create form from default template
+        const response = await forms.createFromTemplate('default')
 
-        // For now, just log the payload and show success
-        console.log('Form payload to save:', payload)
-        toast.success('Form saved successfully!')
-        isSettingsOpen.value = false
-
-        // Optionally redirect to forms list
-        // router.push('/forms')
+        // Redirect to fields editor
+        router.replace({
+            path: `/forms/${response.data.id}/fields`,
+            query: { club_id: clubId.value }
+        })
     } catch (error) {
-        console.error('Error saving form:', error)
-        toast.error('Failed to save form. Please try again.')
-    }
-}
+        console.error('Error creating form:', error)
+        toast.error(error.data?.message || 'Failed to create form. Please try again.')
 
-// Handle Save Form from settings modal (after confirmation)
-const handleSaveFormFromSettings = (settings) => {
-    // Update local settings first
-    formSettings.value = { ...settings }
-    // Then save to API
-    saveFormToApi()
-}
-
-// Can save if form title and slug are filled
-const canSave = computed(() => {
-    return formSettings.value.title && formSettings.value.slug
-})
-
-// Update selected field
-const handleUpdateField = (updatedField) => {
-    if (selectedFieldId.value) {
-        updateField(selectedFieldId.value, updatedField)
-    }
-}
-
-// Delete selected field
-const handleDeleteSelectedField = () => {
-    if (selectedFieldId.value) {
-        deleteField(selectedFieldId.value)
-    }
-}
-
-// Save form
-const handleSave = async () => {
-    if (fields.value.length === 0) {
-        toast.error('Please add at least one field to the form')
-        return
-    }
-
-    // Check if all fields have labels
-    const fieldsWithoutLabels = fields.value.filter(f => !f.label)
-    if (fieldsWithoutLabels.length > 0) {
-        toast.error('All fields must have a label')
-        return
-    }
-
-    // Save to API
-    await saveFormToApi()
-}
-
-// Cancel
-const handleCancel = () => {
-    const hasChanges = formSettings.value.title !== 'Untitled Form' ||
-                       formSettings.value.slug !== 'untitled-form' ||
-                       fields.value.length > 0
-
-    if (hasChanges) {
-        if (confirm('Are you sure? Any unsaved changes will be lost.')) {
-            router.push('/forms')
-        }
-    } else {
-        router.push('/forms')
-    }
-}
-
-// Handle fields reorder from vuedraggable
-const handleFieldsReorder = (newFields) => {
-    fields.value = newFields
-}
-
-// Click outside to deselect field
-const handleLayoutClick = (event) => {
-    // Check if click is outside field card and properties panel
-    const isFieldCard = event.target.closest('.field-card')
-    const isPropertiesPanel = event.target.closest('.properties-panel')
-
-    if (!isFieldCard && !isPropertiesPanel) {
-        deselectField()
+        // Redirect back to forms list
+        router.push({
+            path: '/forms',
+            query: clubId.value ? { club_id: clubId.value } : {}
+        })
     }
 }
 </script>

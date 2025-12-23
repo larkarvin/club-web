@@ -1,10 +1,10 @@
 <template>
-  <div></div>
+  <div>
+    <slot />
+    <Toaster position="top-right" :richColors="true" />
+  </div>
 </template>
 
-<script setup></script>
-
-<style lang="scss" scoped></style>
 <script setup>
 import { Toaster } from 'vue-sonner';
 </script>

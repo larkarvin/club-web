@@ -25,7 +25,7 @@ export function useFormBuilder() {
   // Methods
   const addField = (type, index = null) => {
     const newField = createDefaultField(type)
-    
+
     if (index !== null && index >= 0 && index <= fields.value.length) {
       // Insert at specific position
       fields.value.splice(index, 0, newField)
@@ -33,9 +33,12 @@ export function useFormBuilder() {
       // Add to end
       fields.value.push(newField)
     }
-    
+
     // Auto-select the newly added field
     selectedFieldId.value = newField.id
+
+    // Return the new field for API calls
+    return newField
   }
 
   const updateField = (id, changes) => {
@@ -67,6 +70,11 @@ export function useFormBuilder() {
   const reorderFields = (oldIndex, newIndex) => {
     const field = fields.value.splice(oldIndex, 1)[0]
     fields.value.splice(newIndex, 0, field)
+  }
+
+  const setFields = (newFields) => {
+    fields.value = newFields
+    selectedFieldId.value = null
   }
 
   const saveForm = () => {
@@ -141,6 +149,7 @@ export function useFormBuilder() {
     selectField,
     deselectField,
     reorderFields,
+    setFields,
     saveForm,
     generateSlug
   }

@@ -29,6 +29,13 @@ interface RegisterClubData {
   password_confirmation: string;
 }
 
+interface RegisterUserData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
 interface LoginData {
   email: string;
   password: string;
@@ -107,6 +114,34 @@ export const useAuth = () => {
   };
 
   /**
+   * Register user only (no club) - for club subdomain registration
+   */
+  const registerUserOnly = async (data: RegisterUserData) => {
+    try {
+      const response = await $api.post<AuthResponse>('/register/user', data);
+      console.log('Registration successful:', response);
+
+      // Save the token to cookie
+      if (response.token) {
+        const tokenCookie = useCookie(tokenCookieName);
+        tokenCookie.value = response.token;
+
+        // Save user data
+        user.value = response.user;
+      }
+
+      return { success: true, data: response };
+    } catch (error: any) {
+      console.error('❌ Registration failed:', error);
+      if (error.response?.status === 422) {
+        const errors = $api.getValidationErrors(error);
+        return { success: false, errors };
+      }
+      throw error;
+    }
+  };
+
+  /**
    * Login user
    */
   const login = async (data: LoginData) => {
@@ -125,10 +160,21 @@ export const useAuth = () => {
       return { success: true, data: response };
     } catch (error: any) {
       console.error('❌ Login failed:', error);
+
+      // Handle validation errors (422)
       if (error.response?.status === 422) {
         const errors = $api.getValidationErrors(error);
         return { success: false, errors };
       }
+
+      // Handle unauthorized errors (401)
+      if (error.response?.status === 401 || error.status === 401) {
+        const message = error.response?._data?.message
+          || error.data?.message
+          || 'Invalid email or password';
+        return { success: false, message };
+      }
+
       throw error;
     }
   };
@@ -159,6 +205,7 @@ export const useAuth = () => {
 
     // Methods
     register,
+    registerUserOnly,
     login,
     logout,
     fetchUser,

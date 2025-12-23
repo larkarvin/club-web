@@ -44,9 +44,18 @@ export const validations = {
 
 // Complete schemas for different forms
 export const schemas = {
-  // Registration form
+  // Registration form (with club)
   register: yup.object({
     club_name: validations.name('Club name'),
+    name: validations.name('Your Name'),
+    email: validations.email,
+    password: validations.password,
+    password_confirmation: validations.confirmPassword(),
+    agreeToTerms: validations.terms,
+  }),
+
+  // Registration form (user only - no club)
+  registerUserOnly: yup.object({
     name: validations.name('Your Name'),
     email: validations.email,
     password: validations.password,
