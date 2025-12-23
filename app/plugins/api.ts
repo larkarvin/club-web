@@ -1,5 +1,6 @@
-import { defineNuxtPlugin, useCookie, useRouter, useRuntimeConfig } from '#app';
+import { defineNuxtPlugin, useRouter, useRuntimeConfig } from '#app';
 import type { FetchError } from 'ofetch';
+import { authToken } from '~/composables/useAuth';
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
@@ -15,20 +16,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     },
 
     async onRequest({ options }) {
-      // Attach auth token from cookie
-      const accessToken = useCookie(config.public.auth?.provider?.token?.cookieName || 'accessToken');
-
-      if (accessToken.value) {
+      // Attach auth token from state
+      if (authToken.value) {
         options.headers = options.headers || {};
         // @ts-ignore
-        options.headers['Authorization'] = `Bearer ${accessToken.value}`;
-      }
-
-      // Add CSRF token for Laravel Sanctum (if using cookie-based auth)
-      const csrfToken = useCookie('XSRF-TOKEN');
-      if (csrfToken.value) {
-        // @ts-ignore
-        options.headers['X-XSRF-TOKEN'] = csrfToken.value;
+        options.headers['Authorization'] = `Bearer ${authToken.value}`;
       }
     },
 

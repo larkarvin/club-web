@@ -204,11 +204,17 @@ const handleSubmit = async (values: any, { setErrors }: any) => {
 
 const handleAuthenticatedUser = async () => {
   if (currentClub.value) {
-    const membership = await checkMembership(currentClub.value.id);
+    try {
+      const membership = await checkMembership(currentClub.value.id);
 
-    if (membership.isMember) {
-      router.push('/dashboard');
-    } else {
+      if (membership.isMember) {
+        router.push('/dashboard');
+      } else {
+        router.push('/join');
+      }
+    } catch (error) {
+      console.error('Membership check error:', error);
+      // If membership check fails, redirect to join page
       router.push('/join');
     }
   } else {

@@ -41,27 +41,25 @@ interface LoginData {
   password: string;
 }
 
+// Global token state (shared across all composable instances)
+const authToken = ref<string | null>(null);
+
 export const useAuth = () => {
   const { $api } = useNuxtApp();
   const router = useRouter();
-  const config = useRuntimeConfig();
-
-  // Get token cookie name from config
-  const tokenCookieName = config.public.auth?.provider?.token?.cookieName || 'accessToken';
 
   // User state
   const user = useState<AuthResponse['user'] | null>('auth-user', () => null);
 
   // Check if authenticated
-  const isAuthenticated = computed(() => {
-    const tokenCookie = useCookie(tokenCookieName);
-    return !!tokenCookie.value;
-  });
+  const isAuthenticated = computed(() => !!authToken.value);
 
   // Get current user token
-  const getToken = () => {
-    const tokenCookie = useCookie(tokenCookieName);
-    return tokenCookie.value;
+  const getToken = () => authToken.value;
+
+  // Set token (also exposed for external use)
+  const setToken = (token: string | null) => {
+    authToken.value = token;
   };
 
   /**
@@ -148,12 +146,9 @@ export const useAuth = () => {
     try {
       const response = await $api.post<AuthResponse>('/login', data);
 
-      // Save token to cookie
+      // Save token to state
       if (response.token) {
-        const tokenCookie = useCookie(tokenCookieName);
-        tokenCookie.value = response.token;
-
-        // Save user data
+        authToken.value = response.token;
         user.value = response.user;
       }
 
@@ -189,8 +184,7 @@ export const useAuth = () => {
       console.error('Logout error:', error);
     } finally {
       // Clear token and user data
-      const tokenCookie = useCookie(tokenCookieName);
-      tokenCookie.value = null;
+      authToken.value = null;
       user.value = null;
 
       // Redirect to login
@@ -202,6 +196,7 @@ export const useAuth = () => {
     // State
     user: readonly(user),
     isAuthenticated,
+    authToken: readonly(authToken),
 
     // Methods
     register,
@@ -210,5 +205,9 @@ export const useAuth = () => {
     logout,
     fetchUser,
     getToken,
+    setToken,
   };
 };
+
+// Export authToken for use in plugins
+export { authToken };
