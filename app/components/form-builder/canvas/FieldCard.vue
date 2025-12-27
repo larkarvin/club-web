@@ -47,7 +47,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { toast } from 'vue-sonner'
+
+const props = defineProps({
     field: {
         type: Object,
         required: true
@@ -65,8 +67,20 @@ defineProps({
 const emit = defineEmits(['select', 'delete'])
 
 const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this field?')) {
-        emit('delete')
-    }
+    toast.warning(`Delete "${props.field.label || 'Untitled'}"?`, {
+        description: 'This field will be permanently removed.',
+        cancel: {
+            label: 'Cancel',
+            onClick: () => {}
+        },
+        action: {
+            label: 'Delete',
+            onClick: () => emit('delete')
+        },
+        duration: 8000,
+        classNames: {
+            actionButton: '!bg-meta-1 !text-white hover:!bg-red-600',
+        }
+    })
 }
 </script>

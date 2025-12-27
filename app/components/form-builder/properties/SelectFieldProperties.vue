@@ -119,6 +119,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { toast } from 'vue-sonner'
 import BaseInput from '~/components/forms/BaseInput.vue'
 import CollapsibleSection from '../ui/CollapsibleSection.vue'
 import ToggleSwitch from '../ui/ToggleSwitch.vue'
@@ -225,7 +226,7 @@ const addOption = () => {
 // Remove option
 const removeOption = (index) => {
     if (localField.value.options.length <= 1) {
-        alert('You must have at least one option')
+        toast.error('You must have at least one option')
         return
     }
     localField.value.options.splice(index, 1)
@@ -234,8 +235,20 @@ const removeOption = (index) => {
 
 // Handle delete
 const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this field?')) {
-        emit('delete')
-    }
+    toast.warning(`Delete "${props.field.label || 'Untitled'}"?`, {
+        description: 'This field will be permanently removed.',
+        cancel: {
+            label: 'Cancel',
+            onClick: () => {}
+        },
+        action: {
+            label: 'Delete',
+            onClick: () => emit('delete')
+        },
+        duration: 8000,
+        classNames: {
+            actionButton: '!bg-meta-1 !text-white hover:!bg-red-600',
+        }
+    })
 }
 </script>

@@ -74,6 +74,7 @@ import { ref, watch } from 'vue'
 import BaseInput from '~/components/forms/BaseInput.vue'
 import CollapsibleSection from '../ui/CollapsibleSection.vue'
 import ToggleSwitch from '../ui/ToggleSwitch.vue'
+import { toast } from 'vue-sonner'
 
 const props = defineProps({
     field: {
@@ -100,8 +101,20 @@ const updateField = (property, value) => {
 
 // Handle delete
 const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this field?')) {
-        emit('delete')
-    }
+    toast.warning(`Delete "${props.field.label || 'Untitled'}"?`, {
+        description: 'This field will be permanently removed.',
+        cancel: {
+            label: 'Cancel',
+            onClick: () => {}
+        },
+        action: {
+            label: 'Delete',
+            onClick: () => emit('delete')
+        },
+        duration: 8000,
+        classNames: {
+            actionButton: '!bg-meta-1 !text-white hover:!bg-red-600',
+        }
+    })
 }
 </script>

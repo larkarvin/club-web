@@ -63,5 +63,28 @@ export function useApi() {
         }
     }
 
-    return { forms, fields }
+    // Pages API
+    const pages = {
+        create: async (formId, pageData = {}) => {
+            const { $api } = useNuxtApp()
+            return await $api.post(`/forms/${formId}/pages`, pageData)
+        },
+
+        update: async (formId, pageId, pageData) => {
+            const { $api } = useNuxtApp()
+            return await $api.put(`/forms/${formId}/pages/${pageId}`, pageData)
+        },
+
+        delete: async (formId, pageId) => {
+            const { $api } = useNuxtApp()
+            return await $api.delete(`/forms/${formId}/pages/${pageId}`)
+        },
+
+        reorder: async (formId, pageOrder) => {
+            const { $api } = useNuxtApp()
+            return await $api.patch(`/forms/${formId}/pages/reorder`, { order: pageOrder })
+        }
+    }
+
+    return { forms, fields, pages }
 }

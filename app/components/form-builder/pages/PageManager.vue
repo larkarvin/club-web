@@ -53,7 +53,7 @@
                         class="flex-1 text-sm font-medium text-black dark:text-white truncate"
                         @dblclick.stop="startEditTitle(page)"
                     >
-                        {{ page.title || `Page ${index + 1}` }}
+                        {{ page.title || `Step ${index + 1}` }}
                     </span>
 
                     <!-- Delete button -->
@@ -78,6 +78,7 @@
 
 <script setup>
 import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+import { toast } from 'vue-sonner'
 
 const props = defineProps({
     pages: {
@@ -85,8 +86,8 @@ const props = defineProps({
         required: true
     },
     currentPageId: {
-        type: String,
-        required: true
+        type: [Number, String],
+        default: null
     },
     getFieldCount: {
         type: Function,
@@ -104,6 +105,9 @@ let sortableInstance = null
 const editingPageId = ref(null)
 const editingTitle = ref('')
 const titleInput = ref(null)
+
+// Delete confirmation state
+const pendingDeletePageId = ref(null)
 
 // Initialize SortableJS
 const initSortable = async () => {
@@ -167,9 +171,42 @@ const handleSelectPage = (pageId) => {
 }
 
 const handleDeletePage = (pageId) => {
-    if (confirm('Delete this page? Fields will be moved to the first page.')) {
+    // If already pending deletion for this page, execute it
+    if (pendingDeletePageId.value === pageId) {
         emit('delete-page', pageId)
+        pendingDeletePageId.value = null
+        return
     }
+
+    // Find page title for message
+    const page = props.pages.find(p => p.id === pageId)
+    const pageTitle = page?.title || 'this page'
+
+    // Set pending and show confirmation toast
+    pendingDeletePageId.value = pageId
+    toast.warning(`Delete "${pageTitle}"?`, {
+        description: 'Fields will be moved to the first page.',
+        cancel: {
+            label: 'Cancel',
+            onClick: () => {
+                pendingDeletePageId.value = null
+            }
+        },
+        action: {
+            label: 'Delete',
+            onClick: () => {
+                emit('delete-page', pageId)
+                pendingDeletePageId.value = null
+            }
+        },
+        duration: 8000,
+        classNames: {
+            actionButton: '!bg-meta-1 !text-white hover:!bg-red-600',
+        },
+        onDismiss: () => {
+            pendingDeletePageId.value = null
+        }
+    })
 }
 
 const startEditTitle = async (page) => {

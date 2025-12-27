@@ -89,9 +89,8 @@ const props = defineProps({
 // Computed properties for page display
 const currentPageIndex = computed(() => {
     if (!props.currentPage) return 0
-    // Extract page number from id like 'page-1'
-    const match = props.currentPage.id?.match(/page-(\d+)/)
-    return match ? parseInt(match[1]) - 1 : 0
+    // Use sortOrder if available, otherwise fallback to index 0
+    return props.currentPage.sortOrder ? props.currentPage.sortOrder - 1 : 0
 })
 
 const emptyMessage = computed(() => {

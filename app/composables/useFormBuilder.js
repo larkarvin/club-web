@@ -11,12 +11,9 @@ export function useFormBuilder() {
   const fields = ref([])
   const selectedFieldId = ref(null)
 
-  // Pages state (UI only, no API)
-  const pages = ref([
-    { id: 'page-1', title: 'Page 1', description: '' }
-  ])
-  const currentPageId = ref('page-1')
-  let pageCounter = 1
+  // Pages state (synced with API)
+  const pages = ref([])
+  const currentPageId = ref(null)
 
   // Computed
   const selectedField = computed(() => {
@@ -30,12 +27,16 @@ export function useFormBuilder() {
   })
 
   const currentPage = computed(() => {
-    return pages.value.find(p => p.id === currentPageId.value) || pages.value[0]
+    if (!currentPageId.value && pages.value.length > 0) {
+      return pages.value[0]
+    }
+    return pages.value.find(p => p.id === currentPageId.value) || pages.value[0] || null
   })
 
   // Fields filtered by current page
   const currentPageFields = computed(() => {
-    return fields.value.filter(f => f.pageId === currentPageId.value)
+    const pageId = currentPageId.value || (pages.value[0]?.id)
+    return fields.value.filter(f => f.pageId === pageId)
   })
 
   // Get field count for a specific page
@@ -45,9 +46,10 @@ export function useFormBuilder() {
 
   // Methods
   const addField = (type, index = null) => {
+    const pageId = currentPageId.value || (pages.value[0]?.id)
     const newField = {
       ...createDefaultField(type),
-      pageId: currentPageId.value  // Assign to current page
+      pageId: pageId  // Assign to current page
     }
 
     if (index !== null && index >= 0 && index <= fields.value.length) {
@@ -65,14 +67,10 @@ export function useFormBuilder() {
     return newField
   }
 
-  // Page management methods (UI only, no API)
-  const addPage = () => {
-    pageCounter++
-    const newPage = {
-      id: `page-${pageCounter}`,
-      title: `Page ${pageCounter}`,
-      description: ''
-    }
+  // Page management methods (synced with API)
+  // Note: These update local state. The component handles API calls.
+
+  const addPageLocal = (newPage) => {
     pages.value.push(newPage)
     currentPageId.value = newPage.id
     return newPage
@@ -85,13 +83,13 @@ export function useFormBuilder() {
     }
   }
 
-  const deletePage = (pageId) => {
+  const deletePageLocal = (pageId) => {
     // Don't delete if it's the only page
     if (pages.value.length <= 1) return false
 
     const index = pages.value.findIndex(p => p.id === pageId)
     if (index !== -1) {
-      // Move fields from deleted page to first page
+      // Move fields from deleted page to first page (API handles this)
       const firstPageId = pages.value[0].id === pageId ? pages.value[1].id : pages.value[0].id
       fields.value.forEach(field => {
         if (field.pageId === pageId) {
@@ -117,21 +115,19 @@ export function useFormBuilder() {
     selectedFieldId.value = null
   }
 
-  const reorderPages = (oldIndex, newIndex) => {
-    const page = pages.value.splice(oldIndex, 1)[0]
-    pages.value.splice(newIndex, 0, page)
+  const reorderPagesLocal = (newOrder) => {
+    // Reorder based on new order array of IDs
+    const reordered = newOrder.map(id => pages.value.find(p => p.id === id)).filter(Boolean)
+    pages.value = reordered
   }
 
   const setPages = (newPages) => {
     if (newPages && newPages.length > 0) {
       pages.value = newPages
-      // Update pageCounter to avoid ID conflicts
-      const maxId = Math.max(...newPages.map(p => {
-        const match = p.id.match(/page-(\d+)/)
-        return match ? parseInt(match[1]) : 0
-      }))
-      pageCounter = maxId
       currentPageId.value = newPages[0].id
+    } else {
+      pages.value = []
+      currentPageId.value = null
     }
   }
 
@@ -252,11 +248,11 @@ export function useFormBuilder() {
     generateSlug,
 
     // Page methods
-    addPage,
+    addPageLocal,
     updatePage,
-    deletePage,
+    deletePageLocal,
     selectPage,
-    reorderPages,
+    reorderPagesLocal,
     setPages,
     getFieldCount
   }

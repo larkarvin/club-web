@@ -1,6 +1,6 @@
 <!-- app/components/form-builder/properties/PagePropertiesPanel.vue -->
 <template>
-    <div class="space-y-4 mx-3">
+    <div class="space-y-4 mx-3 my-4">
         <!-- Page Title -->
         <div>
             <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">

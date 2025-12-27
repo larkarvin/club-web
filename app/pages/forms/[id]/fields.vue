@@ -79,25 +79,39 @@
             <FormBuilderLayout>
                 <!-- Left: Page Manager + Component Library -->
                 <template #library>
+                    <!-- Show PageManager only when multiple pages exist -->
                     <PageManager
+                        v-if="pages.length > 1"
                         :pages="pages"
                         :current-page-id="currentPageId"
                         :get-field-count="getFieldCount"
-                        @add-page="addPage"
+                        @add-page="handleAddPage"
                         @select-page="selectPage"
-                        @delete-page="deletePage"
-                        @update-page="(id, changes) => updatePage(id, changes)"
-                        @reorder-pages="reorderPages"
+                        @delete-page="handleDeletePage"
+                        @update-page="handleUpdatePageFromManager"
+                        @reorder-pages="handleReorderPages"
                     />
+                    <!-- Show "Enable Wizard" button when single page -->
+                    <div v-else class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark mb-4">
+                        <button
+                            @click="handleAddPage"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                            </svg>
+                            Enable Multi-Step Wizard
+                        </button>
+                    </div>
                     <ComponentLibrary @add-field="handleAddField" />
                 </template>
 
                 <!-- Center: Canvas (shows only current page fields) -->
                 <template #canvas>
                     <FormCanvas
-                        :fields="currentPageFields"
+                        :fields="pages.length > 1 ? currentPageFields : fields"
                         :selected-id="selectedFieldId"
-                        :current-page="currentPage"
+                        :current-page="pages.length > 1 ? currentPage : null"
                         :total-pages="pages.length"
                         @select="selectField"
                         @delete="handleDeleteField"
@@ -109,7 +123,7 @@
                 <template #properties>
                     <PropertiesPanel
                         :field="selectedField"
-                        :page="currentPage"
+                        :page="pages.length > 1 ? currentPage : null"
                         :page-field-count="currentPageFields.length"
                         @update="handleUpdateField"
                         @delete="handleDeleteSelectedField"
@@ -137,8 +151,10 @@
                         Saving...
                     </span>
 
-                    <!-- Preview Form Button -->
-                    <button @click="isPreviewModalOpen = true"
+                    <!-- Preview Wizard Button (only show when multiple pages) -->
+                    <button
+                        v-if="pages.length > 1"
+                        @click="isPreviewModalOpen = true"
                         class="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-3 text-center font-medium text-white hover:bg-brand-600">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -146,7 +162,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        Preview Form
+                        Preview Wizard
                     </button>
 
                     <!-- Preview Payload Button -->
@@ -185,7 +201,7 @@ definePageMeta({ middleware: ['auth'] })
 
 const router = useRouter()
 const route = useRoute()
-const { forms, fields: fieldsApi } = useApi()
+const { forms, fields: fieldsApi, pages: pagesApi } = useApi()
 
 // Get form ID from route
 const formId = computed(() => route.params.id)
@@ -205,16 +221,17 @@ const {
     selectField,
     deselectField,
     setFields,
-    // Page-related (UI only, no API)
+    // Page-related (synced with API)
     pages,
     currentPageId,
     currentPage,
     currentPageFields,
-    addPage,
+    addPageLocal,
     updatePage,
-    deletePage,
+    deletePageLocal,
     selectPage,
-    reorderPages,
+    reorderPagesLocal,
+    setPages,
     getFieldCount
 } = useFormBuilder()
 
@@ -224,8 +241,14 @@ const formSettings = ref({
     slug: '',
     description: '',
     processingFee: 0,
+    currency: 'USD',
+    paymentGateway: '',
     enabled: true,
-    submissionDeadline: null
+    membersOnly: false,
+    allowNonMembers: true,
+    submissionDeadline: null,
+    submitButtonText: 'Submit',
+    ccEmails: ''
 })
 
 // Computed form name for top bar
@@ -246,8 +269,14 @@ const apiPayload = computed(() => ({
     slug: formSettings.value.slug,
     description: formSettings.value.description,
     processingFee: formSettings.value.processingFee,
+    currency: formSettings.value.currency,
+    paymentGateway: formSettings.value.paymentGateway,
     enabled: formSettings.value.enabled,
+    membersOnly: formSettings.value.membersOnly,
+    allowNonMembers: formSettings.value.allowNonMembers,
     submissionDeadline: formSettings.value.submissionDeadline,
+    submitButtonText: formSettings.value.submitButtonText,
+    ccEmails: formSettings.value.ccEmails,
     schema: vueformSchema.value,
     fields: fields.value
 }))
@@ -268,8 +297,16 @@ onMounted(async () => {
     await loadForm()
 })
 
+// Map API page to local format
+const mapApiPageToLocal = (apiPage) => ({
+    id: apiPage.id,
+    title: apiPage.title || '',
+    description: apiPage.description || '',
+    sortOrder: apiPage.sort_order
+})
+
 // Map API field (snake_case) to local field format (camelCase)
-const mapApiFieldToLocal = (apiField, defaultPageId = 'page-1') => ({
+const mapApiFieldToLocal = (apiField, defaultPageId = null) => ({
     id: apiField.id,
     type: apiField.type,
     label: apiField.label || '',
@@ -282,7 +319,7 @@ const mapApiFieldToLocal = (apiField, defaultPageId = 'page-1') => ({
     max: apiField.max || null,
     allowDecimal: apiField.allow_decimal || false,
     disabledAfterSubmission: apiField.disabled_after_submission || false,
-    pageId: apiField.page_id || defaultPageId,  // Assign to page (default to first page)
+    pageId: apiField.page_id || defaultPageId,  // Assign to page
     options: apiField.options?.map(opt => ({
         id: opt.id,
         value: opt.value,
@@ -295,6 +332,7 @@ const mapApiFieldToLocal = (apiField, defaultPageId = 'page-1') => ({
 // isNew: true for creating new fields, false for updating existing ones
 const mapLocalFieldToApi = (localField, isNew = false) => {
     const mapped = {
+        page_id: localField.pageId,
         type: localField.type,
         label: localField.label,
         placeholder: localField.placeholder,
@@ -339,15 +377,36 @@ const loadForm = async () => {
             slug: formData.slug || '',
             description: formData.description || '',
             processingFee: formData.processing_fee || 0,
+            currency: formData.currency || 'USD',
+            paymentGateway: formData.payment_gateway || '',
             enabled: formData.enabled !== false,
-            submissionDeadline: formData.submission_deadline || null
+            membersOnly: formData.members_only || false,
+            allowNonMembers: formData.allow_non_members !== false,
+            submissionDeadline: formData.submission_deadline || null,
+            submitButtonText: formData.submit_button_text || 'Submit',
+            ccEmails: formData.cc_emails || ''
         }
+
+        // Set pages from API
+        if (formData.pages && Array.isArray(formData.pages)) {
+            const mappedPages = formData.pages
+                .filter(p => p && p.id)
+                .map(mapApiPageToLocal)
+            console.log('Mapped Pages:', mappedPages)
+            setPages(mappedPages)
+        } else {
+            console.log('No pages found in response')
+            setPages([])
+        }
+
+        // Get default page ID for fields without a page
+        const defaultPageId = pages.value.length > 0 ? pages.value[0].id : null
 
         // Set fields (map from API format to local format)
         if (formData.fields && Array.isArray(formData.fields)) {
             const mappedFields = formData.fields
                 .filter(f => f && f.id) // Filter out null/undefined fields
-                .map(mapApiFieldToLocal)
+                .map(f => mapApiFieldToLocal(f, defaultPageId))
             console.log('Mapped Fields:', mappedFields)
             setFields(mappedFields)
         } else {
@@ -412,9 +471,13 @@ const handleAddField = async (fieldType) => {
 
     try {
         const response = await fieldsApi.create(formId.value, apiField)
-        // Update local field with server response (use server-generated ID)
+        // Update local field with server response (use server-generated ID and page_id)
         if (response.data?.id) {
-            updateField(newField.id, { ...newField, id: response.data.id })
+            updateField(newField.id, {
+                ...newField,
+                id: response.data.id,
+                pageId: response.data.page_id || newField.pageId
+            })
         }
     } catch (error) {
         console.error('Error adding field:', error)
@@ -468,23 +531,114 @@ const handleDeleteSelectedField = () => {
     }
 }
 
-// Handle page properties update (UI only, no API)
-const handleUpdatePage = (updatedPage) => {
-    if (updatedPage?.id) {
-        updatePage(updatedPage.id, updatedPage)
+// Handle page properties update from PropertiesPanel (with API)
+let pageUpdateTimeout = null
+const handleUpdatePage = async (updatedPage) => {
+    if (!updatedPage?.id) return
+
+    // Update local state immediately
+    updatePage(updatedPage.id, updatedPage)
+
+    // Debounce API call
+    if (pageUpdateTimeout) clearTimeout(pageUpdateTimeout)
+    pageUpdateTimeout = setTimeout(async () => {
+        try {
+            await pagesApi.update(formId.value, updatedPage.id, {
+                title: updatedPage.title,
+                description: updatedPage.description
+            })
+        } catch (error) {
+            console.error('Error updating page:', error)
+        }
+    }, 500)
+}
+
+// Handle page update from PageManager (title inline edit)
+const handleUpdatePageFromManager = async (pageId, changes) => {
+    // Update local state immediately
+    updatePage(pageId, changes)
+
+    // Debounce API call
+    if (pageUpdateTimeout) clearTimeout(pageUpdateTimeout)
+    pageUpdateTimeout = setTimeout(async () => {
+        try {
+            await pagesApi.update(formId.value, pageId, {
+                title: changes.title,
+                description: changes.description
+            })
+        } catch (error) {
+            console.error('Error updating page:', error)
+        }
+    }, 500)
+}
+
+// Add page via API
+const handleAddPage = async () => {
+    try {
+        const response = await pagesApi.create(formId.value, {
+            title: `Step ${pages.value.length + 1}`
+        })
+        const newPage = response.data || response
+        addPageLocal(mapApiPageToLocal(newPage))
+    } catch (error) {
+        console.error('Error adding page:', error)
+        toast.error('Failed to add page')
+    }
+}
+
+// Delete page via API
+const handleDeletePage = async (pageId) => {
+    if (pages.value.length <= 1) {
+        toast.error('Cannot delete the only page')
+        return
+    }
+
+    try {
+        await pagesApi.delete(formId.value, pageId)
+        deletePageLocal(pageId)
+    } catch (error) {
+        console.error('Error deleting page:', error)
+        toast.error('Failed to delete page')
+        // Reload form to restore state
+        await loadForm()
+    }
+}
+
+// Reorder pages via API
+const handleReorderPages = async (oldIndex, newIndex) => {
+    // Get new order
+    const reorderedPages = [...pages.value]
+    const [movedPage] = reorderedPages.splice(oldIndex, 1)
+    reorderedPages.splice(newIndex, 0, movedPage)
+
+    // Update local state immediately
+    reorderPagesLocal(reorderedPages.map(p => p.id))
+
+    try {
+        await pagesApi.reorder(formId.value, reorderedPages.map(p => p.id))
+    } catch (error) {
+        console.error('Error reordering pages:', error)
+        toast.error('Failed to reorder pages')
+        // Reload form to restore state
+        await loadForm()
     }
 }
 
 // Handle fields reorder via API
-// Note: newFields only contains fields from the current page
-const handleFieldsReorder = async (newPageFields) => {
-    // Get fields from other pages
-    const otherPageFields = fields.value.filter(f => f.pageId !== currentPageId.value)
-    // Combine: other pages + reordered current page fields
-    fields.value = [...otherPageFields, ...newPageFields]
+// Note: In multi-page mode, newFields only contains fields from the current page
+// In single-page mode, newFields contains all fields
+const handleFieldsReorder = async (newFields) => {
+    if (pages.value.length > 1) {
+        // Multi-page mode: merge with fields from other pages
+        const otherPageFields = fields.value.filter(f => f.pageId !== currentPageId.value)
+        fields.value = [...otherPageFields, ...newFields]
+    } else {
+        // Single-page mode: replace all fields
+        fields.value = newFields
+    }
 
     try {
-        // API expects field_key array for reordering (all fields)
+        // API expects field IDs array for reordering (all fields)
         const fieldOrder = fields.value.map(f => f.id)
         await fieldsApi.reorder(formId.value, fieldOrder)
     } catch (error) {

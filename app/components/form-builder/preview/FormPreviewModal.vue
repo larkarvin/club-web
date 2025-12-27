@@ -46,7 +46,7 @@
                 <!-- Current Page Title -->
                 <div v-if="currentPageData" class="mb-6 text-center">
                     <h4 class="text-lg font-semibold text-black dark:text-white">
-                        {{ currentPageData.title || `Page ${currentPageIndex + 1}` }}
+                        {{ currentPageData.title || `Step ${currentPageIndex + 1}` }}
                     </h4>
                     <p v-if="currentPageData.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {{ currentPageData.description }}

@@ -1,7 +1,7 @@
 <!-- app/components/form-builder/FormSettingsModal.vue -->
 <template>
     <!-- Confirmation Modal -->
-    <div v-if="showConfirmation" class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="showConfirmation" class="fixed inset-0 z-[9999999] flex items-center justify-center bg-black bg-opacity-50">
         <div class="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark">
             <h3 class="text-lg font-semibold text-black dark:text-white mb-4">
                 Save Form
@@ -22,9 +22,9 @@
         </div>
     </div>
 
-    <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+    <div v-if="isOpen" class="fixed inset-0 z-[999999] flex items-center justify-center bg-black bg-opacity-50"
         @click.self="closeModal">
-        <div class="relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark max-h-[90vh] overflow-y-auto">
+        <div class="relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-boxdark max-h-[90vh] overflow-y-auto">
             <!-- Header -->
             <div class="mb-6 flex items-center justify-between">
                 <h3 class="text-xl font-semibold text-black dark:text-white">
@@ -37,88 +37,208 @@
                 </button>
             </div>
 
-            <!-- Form Title -->
-            <BaseInput v-model="localSettings.title" label="Title" placeholder="Enter form title" required
-                @input="handleTitleInput" />
+            <!-- ========================== -->
+            <!-- GENERAL SETTINGS -->
+            <!-- ========================== -->
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                    General
+                </h4>
 
-            <!-- Slug -->
-            <BaseInput v-model="localSettings.slug" label="Slug" placeholder="form-slug" required />
+                <!-- Form Title -->
+                <BaseInput v-model="localSettings.title" label="Title" placeholder="Enter form title" required
+                    @input="handleTitleInput" />
 
-            <!-- URL Preview -->
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">
-                URL: {{ computedPreviewUrl }}
-            </p>
+                <!-- Slug -->
+                <BaseInput v-model="localSettings.slug" label="Slug" placeholder="form-slug" required />
 
-            <!-- Description -->
-            <div class="mb-4">
-                <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
-                    Description
-                </label>
-                <textarea v-model="localSettings.description" rows="3" placeholder="Enter form description (optional)"
-                    class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"></textarea>
-            </div>
-
-            <!-- Processing Fee -->
-            <div class="mb-4">
-                <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
-                    Processing Fee
-                </label>
-                <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                    <input type="number" v-model.number="localSettings.processingFee" step="0.01" min="0"
-                        placeholder="0.00"
-                        class="w-full rounded border-[1.5px] border-stroke bg-transparent pl-8 pr-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary" />
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Additional fee charged on form submission
+                <!-- URL Preview -->
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">
+                    URL: {{ computedPreviewUrl }}
                 </p>
+
+                <!-- Description -->
+                <div class="mb-4">
+                    <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
+                        Description
+                    </label>
+                    <textarea v-model="localSettings.description" rows="3" placeholder="Enter form description (optional)"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"></textarea>
+                </div>
+
+                <!-- Submit Button Text -->
+                <BaseInput v-model="localSettings.submitButtonText" label="Submit Button Text" placeholder="Submit" />
             </div>
 
-            <!-- Enabled/Disabled Toggle -->
-            <div class="mb-4 flex items-center justify-between py-3 border-t border-b border-stroke dark:border-strokedark">
-                <div>
-                    <label class="text-sm font-medium text-black dark:text-white">
-                        Form Enabled
+            <!-- ========================== -->
+            <!-- ACCESS CONTROL -->
+            <!-- ========================== -->
+            <div class="mb-6 pt-4 border-t border-stroke dark:border-strokedark">
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                    Access Control
+                </h4>
+
+                <!-- Enabled/Disabled Toggle -->
+                <div class="mb-4 flex items-center justify-between py-3">
+                    <div>
+                        <label class="text-sm font-medium text-black dark:text-white">
+                            Form Enabled
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Allow new submissions
+                        </p>
+                    </div>
+                    <label class="relative inline-flex cursor-pointer items-center">
+                        <input type="checkbox" v-model="localSettings.enabled" class="peer sr-only" />
+                        <div class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
                     </label>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        Allow new submissions
+                </div>
+
+                <!-- Members Only Toggle -->
+                <div class="mb-4 flex items-center justify-between py-3">
+                    <div>
+                        <label class="text-sm font-medium text-black dark:text-white">
+                            Members Only
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Require login to submit
+                        </p>
+                    </div>
+                    <label class="relative inline-flex cursor-pointer items-center">
+                        <input type="checkbox" v-model="localSettings.membersOnly" class="peer sr-only" />
+                        <div class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
+                    </label>
+                </div>
+
+                <!-- Allow Non-Members Toggle (only show if members only is enabled) -->
+                <div v-if="localSettings.membersOnly" class="mb-4 flex items-center justify-between py-3 pl-6 border-l-2 border-primary/30">
+                    <div>
+                        <label class="text-sm font-medium text-black dark:text-white">
+                            Allow Non-Members
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Allow guests to submit without membership
+                        </p>
+                    </div>
+                    <label class="relative inline-flex cursor-pointer items-center">
+                        <input type="checkbox" v-model="localSettings.allowNonMembers" class="peer sr-only" />
+                        <div class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
+                    </label>
+                </div>
+
+                <!-- Allow Submission Until -->
+                <div class="mb-4">
+                    <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
+                        Submission Deadline
+                    </label>
+                    <input type="datetime-local" v-model="localSettings.submissionDeadline"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary" />
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Leave empty for no deadline
                     </p>
                 </div>
-                <label class="relative inline-flex cursor-pointer items-center">
-                    <input type="checkbox" v-model="localSettings.enabled" class="peer sr-only" />
-                    <div class="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
-                </label>
             </div>
 
-            <!-- Allow Submission Until -->
-            <div class="mb-6">
-                <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
-                    Allow Submissions Until
-                </label>
-                <input type="datetime-local" v-model="localSettings.submissionDeadline"
-                    class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary" />
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Leave empty for no deadline
-                </p>
+            <!-- ========================== -->
+            <!-- PAYMENT SETTINGS -->
+            <!-- ========================== -->
+            <div class="mb-6 pt-4 border-t border-stroke dark:border-strokedark">
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                    Payment
+                </h4>
+
+                <!-- Currency -->
+                <div class="mb-4">
+                    <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
+                        Currency
+                    </label>
+                    <select v-model="localSettings.currency"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="PHP">PHP - Philippine Peso</option>
+                        <option value="IDR">IDR - Indonesian Rupiah</option>
+                    </select>
+                </div>
+
+                <!-- Processing Fee -->
+                <div class="mb-4">
+                    <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
+                        Processing Fee
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{{ currencySymbol }}</span>
+                        <input type="number" v-model.number="localSettings.processingFee" step="0.01" min="0"
+                            placeholder="0.00"
+                            class="w-full rounded border-[1.5px] border-stroke bg-transparent pl-10 pr-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary" />
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Additional fee charged on form submission
+                    </p>
+                </div>
+
+                <!-- Payment Gateway -->
+                <div class="mb-4">
+                    <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
+                        Payment Gateway
+                    </label>
+                    <select v-model="localSettings.paymentGateway"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                        <option value="">No payment required</option>
+                        <option v-if="localSettings.currency === 'PHP'" value="xendit_ph">Xendit PH Checkout</option>
+                        <option v-if="localSettings.currency === 'IDR'" value="xendit_id">Xendit ID Checkout</option>
+                        <option v-if="localSettings.currency === 'PHP' || localSettings.currency === 'USD'" value="paypal">PayPal</option>
+                    </select>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Select a payment gateway to collect payments
+                    </p>
+                </div>
+            </div>
+
+            <!-- ========================== -->
+            <!-- NOTIFICATIONS -->
+            <!-- ========================== -->
+            <div class="mb-6 pt-4 border-t border-stroke dark:border-strokedark">
+                <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                    Notifications
+                </h4>
+
+                <!-- CC Emails -->
+                <div class="mb-4">
+                    <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">
+                        CC Emails
+                    </label>
+                    <textarea v-model="localSettings.ccEmails" rows="3"
+                        placeholder="Enter email addresses (one per line)"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"></textarea>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        These email addresses will receive a copy of each submission
+                    </p>
+                </div>
             </div>
 
             <!-- Buttons -->
-            <div class="flex justify-end gap-3 pt-4 border-t border-stroke dark:border-strokedark">
+            <div class="flex justify-between pt-4 border-t border-stroke dark:border-strokedark">
+                <!-- Cancel on the left -->
                 <button v-if="showCancel" @click="closeModal"
                     class="inline-flex items-center justify-center rounded-md border border-stroke px-6 py-3 text-center font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white">
                     Cancel
                 </button>
-                <button @click="handleSave" :disabled="!canSave"
-                    class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-center font-medium text-white hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed">
-                    {{ saveButtonText }}
-                </button>
-                <button @click="handleSaveForm" :disabled="!canSave"
-                    class="inline-flex items-center justify-center rounded-md bg-green-600 px-6 py-3 text-center font-medium text-white hover:bg-green-700 disabled:bg-opacity-50 disabled:cursor-not-allowed">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Form
-                </button>
+                <div v-else></div>
+
+                <!-- Save buttons on the right -->
+                <div class="flex gap-3">
+                    <button @click="handleSave" :disabled="!canSave"
+                        class="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-center font-medium text-white hover:bg-opacity-90 disabled:bg-opacity-50 disabled:cursor-not-allowed">
+                        {{ saveButtonText }}
+                    </button>
+                    <button @click="handleSaveForm" :disabled="!canSave"
+                        class="inline-flex items-center justify-center rounded-md bg-green-600 px-6 py-3 text-center font-medium text-white hover:bg-green-700 disabled:bg-opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Form
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -140,8 +260,14 @@ const props = defineProps({
             slug: '',
             description: '',
             processingFee: 0,
+            currency: 'USD',
+            paymentGateway: '',
             enabled: true,
-            submissionDeadline: null
+            membersOnly: false,
+            allowNonMembers: true,
+            submissionDeadline: null,
+            submitButtonText: 'Submit',
+            ccEmails: ''
         })
     },
     previewUrl: {
@@ -169,8 +295,14 @@ const localSettings = ref({
     slug: props.settings.slug || '',
     description: props.settings.description || '',
     processingFee: props.settings.processingFee || 0,
+    currency: props.settings.currency || 'USD',
+    paymentGateway: props.settings.paymentGateway || '',
     enabled: props.settings.enabled !== false,
-    submissionDeadline: props.settings.submissionDeadline || null
+    membersOnly: props.settings.membersOnly || false,
+    allowNonMembers: props.settings.allowNonMembers !== false,
+    submissionDeadline: props.settings.submissionDeadline || null,
+    submitButtonText: props.settings.submitButtonText || 'Submit',
+    ccEmails: props.settings.ccEmails || ''
 })
 
 // Watch for external changes
@@ -180,10 +312,42 @@ watch(() => props.settings, (newSettings) => {
         slug: newSettings.slug || '',
         description: newSettings.description || '',
         processingFee: newSettings.processingFee || 0,
+        currency: newSettings.currency || 'USD',
+        paymentGateway: newSettings.paymentGateway || '',
         enabled: newSettings.enabled !== false,
-        submissionDeadline: newSettings.submissionDeadline || null
+        membersOnly: newSettings.membersOnly || false,
+        allowNonMembers: newSettings.allowNonMembers !== false,
+        submissionDeadline: newSettings.submissionDeadline || null,
+        submitButtonText: newSettings.submitButtonText || 'Submit',
+        ccEmails: newSettings.ccEmails || ''
     }
 }, { deep: true })
+
+// Reset payment gateway when currency changes if gateway is not compatible
+watch(() => localSettings.value.currency, (newCurrency) => {
+    const gateway = localSettings.value.paymentGateway
+    if (gateway) {
+        // Check if current gateway is valid for new currency
+        const validGateways = {
+            'PHP': ['xendit_ph', 'paypal'],
+            'IDR': ['xendit_id'],
+            'USD': ['paypal']
+        }
+        if (!validGateways[newCurrency]?.includes(gateway)) {
+            localSettings.value.paymentGateway = ''
+        }
+    }
+})
+
+// Currency symbol
+const currencySymbol = computed(() => {
+    switch (localSettings.value.currency) {
+        case 'PHP': return '₱'
+        case 'IDR': return 'Rp'
+        case 'USD':
+        default: return '$'
+    }
+})
 
 // Computed preview URL
 const computedPreviewUrl = computed(() => {
