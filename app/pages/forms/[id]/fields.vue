@@ -27,6 +27,14 @@
                 @save-form="handleSaveFormFromSettings"
             />
 
+            <!-- Form Preview Modal (Wizard) -->
+            <FormPreviewModal
+                :is-open="isPreviewModalOpen"
+                :pages="pages"
+                :fields="fields"
+                @close="isPreviewModalOpen = false"
+            />
+
             <!-- API Payload Preview Modal -->
             <div v-if="isSchemaModalOpen" class="fixed inset-0 z-99999 flex items-center justify-center bg-black/50"
                 @click.self="isSchemaModalOpen = false">
@@ -69,16 +77,28 @@
 
             <!-- Form Builder Layout -->
             <FormBuilderLayout>
-                <!-- Left: Component Library -->
+                <!-- Left: Page Manager + Component Library -->
                 <template #library>
+                    <PageManager
+                        :pages="pages"
+                        :current-page-id="currentPageId"
+                        :get-field-count="getFieldCount"
+                        @add-page="addPage"
+                        @select-page="selectPage"
+                        @delete-page="deletePage"
+                        @update-page="(id, changes) => updatePage(id, changes)"
+                        @reorder-pages="reorderPages"
+                    />
                     <ComponentLibrary @add-field="handleAddField" />
                 </template>
 
-                <!-- Center: Canvas -->
+                <!-- Center: Canvas (shows only current page fields) -->
                 <template #canvas>
                     <FormCanvas
-                        :fields="fields"
+                        :fields="currentPageFields"
                         :selected-id="selectedFieldId"
+                        :current-page="currentPage"
+                        :total-pages="pages.length"
                         @select="selectField"
                         @delete="handleDeleteField"
                         @update:fields="handleFieldsReorder"
@@ -89,8 +109,11 @@
                 <template #properties>
                     <PropertiesPanel
                         :field="selectedField"
+                        :page="currentPage"
+                        :page-field-count="currentPageFields.length"
                         @update="handleUpdateField"
                         @delete="handleDeleteSelectedField"
+                        @update-page="handleUpdatePage"
                     />
                 </template>
             </FormBuilderLayout>
@@ -113,6 +136,18 @@
                         </svg>
                         Saving...
                     </span>
+
+                    <!-- Preview Form Button -->
+                    <button @click="isPreviewModalOpen = true"
+                        class="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-3 text-center font-medium text-white hover:bg-brand-600">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Preview Form
+                    </button>
 
                     <!-- Preview Payload Button -->
                     <button @click="isSchemaModalOpen = true"
@@ -140,6 +175,8 @@ import FormBuilderLayout from '~/components/form-builder/layout/FormBuilderLayou
 import ComponentLibrary from '~/components/form-builder/library/ComponentLibrary.vue'
 import FormCanvas from '~/components/form-builder/canvas/FormCanvas.vue'
 import PropertiesPanel from '~/components/form-builder/properties/PropertiesPanel.vue'
+import PageManager from '~/components/form-builder/pages/PageManager.vue'
+import FormPreviewModal from '~/components/form-builder/preview/FormPreviewModal.vue'
 import { useFormBuilder } from '~/composables/useFormBuilder'
 import { useVueformSchema } from '~/composables/useVueformSchema'
 import { useApi } from '~/composables/useApi'
@@ -167,7 +204,18 @@ const {
     deleteField,
     selectField,
     deselectField,
-    setFields
+    setFields,
+    // Page-related (UI only, no API)
+    pages,
+    currentPageId,
+    currentPage,
+    currentPageFields,
+    addPage,
+    updatePage,
+    deletePage,
+    selectPage,
+    reorderPages,
+    getFieldCount
 } = useFormBuilder()
 
 // Form settings
@@ -212,13 +260,16 @@ const isSettingsOpen = ref(false)
 // Schema modal state
 const isSchemaModalOpen = ref(false)
 
+// Preview modal state (wizard preview)
+const isPreviewModalOpen = ref(false)
+
 // Load form data on mount
 onMounted(async () => {
     await loadForm()
 })
 
 // Map API field (snake_case) to local field format (camelCase)
-const mapApiFieldToLocal = (apiField) => ({
+const mapApiFieldToLocal = (apiField, defaultPageId = 'page-1') => ({
     id: apiField.id,
     type: apiField.type,
     label: apiField.label || '',
@@ -231,6 +282,7 @@ const mapApiFieldToLocal = (apiField) => ({
     max: apiField.max || null,
     allowDecimal: apiField.allow_decimal || false,
     disabledAfterSubmission: apiField.disabled_after_submission || false,
+    pageId: apiField.page_id || defaultPageId,  // Assign to page (default to first page)
     options: apiField.options?.map(opt => ({
         id: opt.id,
         value: opt.value,
@@ -416,13 +468,24 @@ const handleDeleteSelectedField = () => {
     }
 }
 
+// Handle page properties update (UI only, no API)
+const handleUpdatePage = (updatedPage) => {
+    if (updatedPage?.id) {
+        updatePage(updatedPage.id, updatedPage)
+    }
+}
+
 // Handle fields reorder via API
-const handleFieldsReorder = async (newFields) => {
-    fields.value = newFields
+// Note: newFields only contains fields from the current page
+const handleFieldsReorder = async (newPageFields) => {
+    // Get fields from other pages
+    const otherPageFields = fields.value.filter(f => f.pageId !== currentPageId.value)
+    // Combine: other pages + reordered current page fields
+    fields.value = [...otherPageFields, ...newPageFields]
 
     try {
-        // API expects field_key array for reordering
-        const fieldOrder = newFields.map(f => f.id)
+        // API expects field_key array for reordering (all fields)
+        const fieldOrder = fields.value.map(f => f.id)
         await fieldsApi.reorder(formId.value, fieldOrder)
     } catch (error) {
         console.error('Error reordering fields:', error)

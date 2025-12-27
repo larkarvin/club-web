@@ -4,12 +4,20 @@
         class="properties-panel rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
         <div class="border-b border-stroke px-6.5 py-4 dark:border-strokedark">
             <h3 class="font-medium text-black dark:text-white mx-3">
-                Field Properties
+                {{ field ? 'Field Properties' : 'Page Properties' }}
             </h3>
         </div>
         <div class="p-6.5">
-            <!-- Empty State -->
-            <EmptyProperties v-if="!field" />
+            <!-- Page Properties (when no field selected but page provided) -->
+            <PagePropertiesPanel
+                v-if="!field && page"
+                :page="page"
+                :field-count="pageFieldCount"
+                @update:page="$emit('update-page', $event)"
+            />
+
+            <!-- Empty State (when no field and no page) -->
+            <EmptyProperties v-else-if="!field" />
 
             <!-- Text Field Properties -->
             <TextFieldProperties v-else-if="field.type === 'text'" :field="field"
@@ -40,6 +48,7 @@
 
 <script setup>
 import EmptyProperties from './EmptyProperties.vue'
+import PagePropertiesPanel from './PagePropertiesPanel.vue'
 import TextFieldProperties from './TextFieldProperties.vue'
 import SelectFieldProperties from './SelectFieldProperties.vue'
 import NumberFieldProperties from './NumberFieldProperties.vue'
@@ -48,8 +57,16 @@ const props = defineProps({
     field: {
         type: Object,
         default: null
+    },
+    page: {
+        type: Object,
+        default: null
+    },
+    pageFieldCount: {
+        type: Number,
+        default: 0
     }
 })
 
-defineEmits(['update', 'delete'])
+defineEmits(['update', 'delete', 'update-page'])
 </script>

@@ -11,11 +11,16 @@
             No fields added yet
         </p>
         <p class="text-xs text-gray-400 dark:text-gray-500">
-            Drag components from the left to get started
+            {{ message }}
         </p>
     </div>
 </template>
 
 <script setup>
-// No props or logic needed - pure presentation component
+defineProps({
+    message: {
+        type: String,
+        default: 'Drag components from the left to get started'
+    }
+})
 </script>

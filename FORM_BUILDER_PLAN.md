@@ -1,5 +1,39 @@
 # Dynamic Form Fields - Vueform-Compatible Architecture
 
+## UI-Only Wizard/Steps Implementation (Current Task)
+
+Implement multi-step wizard UI for form builder with **mock data only** - no API calls.
+
+### Files to Create
+- `app/components/form-builder/pages/PageManager.vue` - Page list/management in sidebar
+- `app/components/form-builder/preview/FormPreviewModal.vue` - Preview modal with wizard
+
+### Files to Modify
+- `app/pages/forms/[id]/fields.vue` - Add pages state, integrate PageManager
+- `app/components/form-builder/canvas/FormCanvas.vue` - Filter fields by page, show page header
+- `app/composables/useFormBuilder.js` - Add pages state, currentPageId, pageId on fields
+
+### Mock Data Structure
+```javascript
+// Pages (local state, no API)
+const pages = ref([
+  { id: 'page-1', title: 'Personal Information', description: '' },
+])
+const currentPageId = ref('page-1')
+
+// Fields get pageId when created
+const field = { id: 'field-1', type: 'text', label: 'Name', pageId: 'page-1' }
+```
+
+### Implementation Order
+1. Update useFormBuilder.js - add pages state and helpers
+2. Create PageManager.vue component
+3. Update fields.vue - integrate PageManager
+4. Update FormCanvas.vue - filter by page, show page header
+5. Create FormPreviewModal.vue with wizard navigation
+
+---
+
 ## Problem Statement
 
 The current `form_fields` table has fixed columns for specific field types. Adding new field types (country selector, address, file upload, image, video, phone with country code, HTML/paragraph, divider) would require adding many columns.

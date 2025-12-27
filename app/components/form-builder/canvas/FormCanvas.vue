@@ -2,16 +2,35 @@
 <template>
     <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
         <div class="border-b border-stroke px-6.5 py-4 dark:border-strokedark">
-            <h3 class="font-medium text-black dark:text-white mx-3">
-                Form Preview
-                <span v-if="localFields.length > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
-                    ({{ localFields.length }} {{ localFields.length === 1 ? 'field' : 'fields' }})
+            <div class="flex items-center justify-between mx-3">
+                <h3 class="font-medium text-black dark:text-white">
+                    Form Preview
+                    <span v-if="localFields.length > 0" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                        ({{ localFields.length }} {{ localFields.length === 1 ? 'field' : 'fields' }})
+                    </span>
+                </h3>
+                <!-- Page indicator badge -->
+                <span v-if="totalPages > 1" class="text-xs font-medium px-2 py-1 rounded-full bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
+                    Page {{ currentPageIndex + 1 }} of {{ totalPages }}
                 </span>
-            </h3>
+            </div>
         </div>
+
+        <!-- Current Page Header (when multiple pages exist) -->
+        <div v-if="currentPage && totalPages > 1" class="px-6.5 py-4 bg-gray-50 dark:bg-gray-800/50 border-b border-stroke dark:border-strokedark">
+            <div class="mx-3">
+                <h4 class="text-lg font-semibold text-black dark:text-white">
+                    {{ currentPage.title || 'Untitled Page' }}
+                </h4>
+                <p v-if="currentPage.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {{ currentPage.description }}
+                </p>
+            </div>
+        </div>
+
         <div class="p-6.5 min-h-[500px] m-3">
             <!-- Empty State -->
-            <EmptyCanvas v-if="localFields.length === 0" />
+            <EmptyCanvas v-if="localFields.length === 0" :message="emptyMessage" />
 
             <!-- Fields List -->
             <div v-else ref="fieldListRef" class="space-y-4">
@@ -38,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import EmptyCanvas from './EmptyCanvas.vue'
 import FieldCard from './FieldCard.vue'
 import TextFieldPreview from '../fields/TextFieldPreview.vue'
@@ -56,7 +75,30 @@ const props = defineProps({
     selectedId: {
         type: [String, Number],
         default: null
+    },
+    currentPage: {
+        type: Object,
+        default: null
+    },
+    totalPages: {
+        type: Number,
+        default: 1
     }
+})
+
+// Computed properties for page display
+const currentPageIndex = computed(() => {
+    if (!props.currentPage) return 0
+    // Extract page number from id like 'page-1'
+    const match = props.currentPage.id?.match(/page-(\d+)/)
+    return match ? parseInt(match[1]) - 1 : 0
+})
+
+const emptyMessage = computed(() => {
+    if (props.totalPages > 1) {
+        return 'Drag components here to add fields to this page'
+    }
+    return 'Drag components here to build your form'
 })
 
 const emit = defineEmits(['select', 'delete', 'update:fields'])
