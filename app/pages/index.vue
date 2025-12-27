@@ -121,13 +121,18 @@ import SaleCategoryChart from '~/components/crm/SaleCategoryChart.vue';
 import UpcomingSchedule from '~/components/crm/UpcomingSchedule.vue';
 import AdminLayout from '~/components/layout/AdminLayout.vue';
 
-const { currentClub, subdomain, fetchClubBySubdomain, isClubSubdomain } = useClub();
+const { club, subdomain, isClubSite, fetchClub } = useClub();
 const { isAuthenticated } = useAuth();
+
+// Aliases for template
+const currentClub = club;
+const isClubSubdomain = isClubSite;
 
 const isLoading = ref(true);
 
 useHead({
   title: computed(() => {
+    if (import.meta.server) return 'Loading...';
     if (isClubSubdomain.value && currentClub.value) {
       return currentClub.value.name;
     }
@@ -138,7 +143,7 @@ useHead({
 onMounted(async () => {
   // If on a club subdomain and club not loaded, fetch it
   if (subdomain.value && !currentClub.value) {
-    await fetchClubBySubdomain(subdomain.value);
+    await fetchClub();
   }
   isLoading.value = false;
 });

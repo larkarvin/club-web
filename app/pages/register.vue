@@ -139,25 +139,28 @@ useHead({
 });
 
 const router = useRouter();
-const { registerUserOnly, isAuthenticated } = useAuth();
-const { currentClub, subdomain, fetchClubBySubdomain } = useClub();
+const { register, getToken } = useAuth();
+const { club, subdomain, fetchClub } = useClub();
+
+// Alias for template
+const currentClub = club;
 
 const schema = schemas.registerUserOnly;
 
 // Load club data on mount
 onMounted(async () => {
   if (subdomain.value && !currentClub.value) {
-    await fetchClubBySubdomain(subdomain.value);
+    await fetchClub();
   }
 
-  if (isAuthenticated.value) {
+  if (getToken()) {
     router.push('/join');
   }
 });
 
 const handleSubmit = async (values: any, { setErrors }: any) => {
   try {
-    const result = await registerUserOnly({
+    const result = await register({
       name: values.name,
       email: values.email,
       password: values.password,

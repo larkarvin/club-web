@@ -1,153 +1,109 @@
 // composables/useClub.ts
-import { ref, computed } from 'vue'
+// Simple club composable - subdomain from URL, club data from API
 
 interface Club {
-    id: number
-    name: string
-    subdomain: string
-    description?: string
-    logo?: string
+  id: number;
+  name: string;
+  subdomain: string;
 }
-
-interface MembershipStatus {
-    isMember: boolean
-    role: string | null
-    joinedAt?: string
-}
-
-// Global state for current club
-const currentClub = ref<Club | null>(null)
-const membershipStatus = ref<MembershipStatus | null>(null)
-const isLoadingClub = ref(false)
-const clubError = ref<string | null>(null)
 
 export function useClub() {
-    const config = useRuntimeConfig()
-    const { $api } = useNuxtApp()
+  const config = useRuntimeConfig();
 
-    // Get raw subdomain from current host (includes www, app, etc.)
-    const getRawSubdomain = (): string | null => {
-        if (import.meta.server) return null
+  // Club state
+  const club = useState<Club | null>('club', () => null);
+  const loading = useState<boolean>('club-loading', () => false);
 
-        const host = window.location.hostname
-        const baseDomain = config.public.baseDomain || 'raceyaclub.local'
-
-        // Check if we're on a subdomain
-        if (host.endsWith(`.${baseDomain}`)) {
-            return host.replace(`.${baseDomain}`, '') || null
+  // Get subdomain from URL
+  const getSubdomain = (): string | null => {
+    if (import.meta.server) return null;
+    try {
+      const host = window.location.hostname;
+      const baseDomain = config.public.baseDomain || 'raceyaclub.local';
+      if (host.endsWith(`.${baseDomain}`)) {
+        const sub = host.replace(`.${baseDomain}`, '');
+        if (sub && sub !== 'www' && sub !== 'app' && sub !== 'api') {
+          return sub;
         }
-        return null
+      }
+    } catch {
+      // ignore
     }
+    return null;
+  };
 
-    // Get club subdomain (excludes www, app, api)
-    const getSubdomain = (): string | null => {
-        const raw = getRawSubdomain()
-        if (raw && raw !== 'www' && raw !== 'app' && raw !== 'api') {
-            return raw
-        }
-        return null
+  const subdomain = computed(() => {
+    if (import.meta.server) return null;
+    return getSubdomain();
+  });
+  const isClubSite = computed(() => {
+    if (import.meta.server) return false;
+    return !!subdomain.value;
+  });
+
+  // Fetch club info
+  const fetchClub = async () => {
+    if (!subdomain.value) return null;
+    if (club.value?.subdomain === subdomain.value) return club.value;
+
+    loading.value = true;
+    try {
+      const { $api } = useNuxtApp();
+      const response = await $api.get<any>(`/clubs/by-subdomain/${subdomain.value}`);
+      club.value = response.data || response;
+      return club.value;
+    } catch (error) {
+      console.error('Error fetching club:', error);
+      club.value = null;
+      return null;
+    } finally {
+      loading.value = false;
     }
+  };
 
-    const rawSubdomain = computed(() => getRawSubdomain())
-    const subdomain = computed(() => getSubdomain())
+  // Check if user is member (from user's clubs array)
+  const user = useState<any>('user', () => null);
 
-    // Check if on www subdomain
-    const isWwwSubdomain = computed(() => rawSubdomain.value === 'www')
+  const isMember = computed(() => {
+    if (import.meta.server) return false;
+    const sub = subdomain.value;
+    if (!sub || !user.value?.clubs) return false;
+    return user.value.clubs.some((c: any) => c.subdomain === sub);
+  });
 
-    // Check if on app subdomain
-    const isAppSubdomain = computed(() => rawSubdomain.value === 'app')
+  const role = computed(() => {
+    if (import.meta.server) return null;
+    const sub = subdomain.value;
+    if (!sub || !user.value?.clubs) return null;
+    return user.value.clubs.find((c: any) => c.subdomain === sub)?.role || null;
+  });
 
-    // Check if current host is a valid club subdomain (not www, not empty)
-    const isClubSubdomain = computed(() => {
-        const sub = subdomain.value
-        return !!sub && sub !== 'www' && sub !== 'app' && sub !== 'api'
-    })
-
-    // Fetch club by subdomain
-    const fetchClubBySubdomain = async (subdomainName: string): Promise<Club | null> => {
-        isLoadingClub.value = true
-        clubError.value = null
-
-        try {
-            const response = await $api.get(`/clubs/by-subdomain/${subdomainName}`)
-            currentClub.value = response.data || response
-            return currentClub.value
-        } catch (error: any) {
-            console.error('Error fetching club:', error)
-            clubError.value = error.data?.message || 'Club not found'
-            currentClub.value = null
-            return null
-        } finally {
-            isLoadingClub.value = false
-        }
+  // Join club
+  const joinClub = async () => {
+    if (!club.value) return false;
+    try {
+      const { $api } = useNuxtApp();
+      await $api.post(`/clubs/${club.value.id}/join`);
+      return true;
+    } catch (error) {
+      console.error('Error joining club:', error);
+      return false;
     }
+  };
 
-    // Check if user is member of current club
-    const checkMembership = async (clubId: number): Promise<MembershipStatus> => {
-        try {
-            const response = await $api.get(`/clubs/${clubId}/membership`)
-            membershipStatus.value = response.data || response
-            return membershipStatus.value!
-        } catch (error: any) {
-            console.error('Error checking membership:', error)
-            membershipStatus.value = { isMember: false, role: null }
-            return membershipStatus.value
-        }
-    }
-
-    // Join the current club
-    const joinClub = async (clubId: number): Promise<boolean> => {
-        try {
-            const response = await $api.post(`/clubs/${clubId}/join`)
-            membershipStatus.value = {
-                isMember: true,
-                role: response.role || 'member',
-            }
-            return true
-        } catch (error: any) {
-            console.error('Error joining club:', error)
-            return false
-        }
-    }
-
-    // Leave the current club
-    const leaveClub = async (clubId: number): Promise<boolean> => {
-        try {
-            await $api.post(`/clubs/${clubId}/leave`)
-            membershipStatus.value = { isMember: false, role: null }
-            return true
-        } catch (error: any) {
-            console.error('Error leaving club:', error)
-            return false
-        }
-    }
-
-    // Clear club state
-    const clearClub = () => {
-        currentClub.value = null
-        membershipStatus.value = null
-        clubError.value = null
-    }
-
-    return {
-        // State
-        currentClub,
-        membershipStatus,
-        isLoadingClub,
-        clubError,
-        subdomain,
-        rawSubdomain,
-        isClubSubdomain,
-        isWwwSubdomain,
-        isAppSubdomain,
-
-        // Methods
-        getSubdomain,
-        getRawSubdomain,
-        fetchClubBySubdomain,
-        checkMembership,
-        joinClub,
-        leaveClub,
-        clearClub,
-    }
+  return {
+    club,
+    subdomain,
+    isClubSite,
+    loading,
+    isMember,
+    role,
+    fetchClub,
+    joinClub,
+    // Aliases for backwards compatibility
+    currentClub: club,
+    isLoadingClub: loading,
+    isMemberOfCurrentClub: isMember,
+    currentClubRole: role,
+  };
 }

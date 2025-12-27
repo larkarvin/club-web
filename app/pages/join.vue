@@ -114,72 +114,74 @@ import { toast } from 'vue-sonner'
 
 definePageMeta({})
 
+const router = useRouter()
+const { fetchUser, getToken } = useAuth()
+const { club, joinClub, loading } = useClub()
+
+// Alias for template
+const currentClub = club
+const isLoadingClub = loading
+
 useHead({
-  title: computed(() => currentClub.value ? `Join ${currentClub.value.name}` : 'Join Club')
+  title: computed(() => club.value ? `Join ${club.value.name}` : 'Join Club')
 })
 
-const router = useRouter()
-const { isAuthenticated } = useAuth()
-const { currentClub, subdomain, fetchClubBySubdomain, joinClub, checkMembership, isLoadingClub } = useClub()
-
 const isJoining = ref(false)
-const isCheckingMembership = ref(false)
 const errorMessage = ref('')
+const isCheckingMembership = ref(true)
 
-// Load club and check auth on mount
 onMounted(async () => {
-  // Load club if not loaded
-  if (subdomain.value && !currentClub.value) {
-    await fetchClubBySubdomain(subdomain.value)
-  }
-
-  // If not authenticated, redirect to login
-  if (!isAuthenticated.value) {
+  if (!getToken()) {
     router.push('/login')
     return
   }
 
-  // If already a member or owner, redirect to dashboard
-  if (currentClub.value) {
-    isCheckingMembership.value = true
-    try {
-      const membership = await checkMembership(currentClub.value.id)
-      if (membership.isMember) {
-        router.push('/dashboard')
-        return
-      }
-    } finally {
-      isCheckingMembership.value = false
+  // Call join-check API - subdomain is automatically added by api plugin
+  try {
+    const { $api } = useNuxtApp()
+    const response = await $api.get<{ isMember: boolean; role: string | null; club: any }>('/join-check')
+
+    // Set club data from response
+    if (response.club) {
+      club.value = response.club
     }
+
+    // Already a member? Redirect to dashboard
+    if (response.isMember) {
+      router.push('/dashboard')
+      return
+    }
+  } catch (error: any) {
+    console.error('Join check failed:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+      return
+    }
+    errorMessage.value = 'Failed to check membership status.'
   }
+
+  isCheckingMembership.value = false
 })
 
-// Handle join club
 const handleJoinClub = async () => {
-  if (!currentClub.value) return
+  if (!club.value) return
 
   isJoining.value = true
   errorMessage.value = ''
 
-  try {
-    const success = await joinClub(currentClub.value.id)
+  const success = await joinClub()
 
-    if (success) {
-      toast.success(`Welcome to ${currentClub.value.name}!`)
-      router.push('/dashboard')
-    } else {
-      errorMessage.value = 'Failed to join club. Please try again.'
-    }
-  } catch (error: any) {
-    console.error('Join error:', error)
-    errorMessage.value = error.data?.message || 'Failed to join club. Please try again.'
-  } finally {
-    isJoining.value = false
+  if (success) {
+    toast.success(`Welcome to ${club.value.name}!`)
+    // Refresh user to get updated clubs
+    await fetchUser()
+    router.push('/dashboard')
+  } else {
+    errorMessage.value = 'Failed to join club.'
   }
+
+  isJoining.value = false
 }
 
-// Handle skip - go back to home
-const handleSkip = () => {
-  router.push('/')
-}
+const handleSkip = () => router.push('/')
 </script>

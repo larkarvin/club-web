@@ -139,94 +139,44 @@ import FormPasswordInput from '@/components/forms/FormPasswordInput.vue';
 import Notification from '@/components/ui/notification/Notification.vue';
 import { schemas } from '@/utils/validationSchemas';
 import { Form } from 'vee-validate';
-import { toast } from 'vue-sonner';
 
 definePageMeta({});
 
-useHead({
-  title: 'Sign In'
-});
+useHead({ title: 'Sign In' });
 
 const router = useRouter();
-const { login, isAuthenticated } = useAuth();
-const { currentClub, subdomain, fetchClubBySubdomain, checkMembership } = useClub();
+const { login, user, fetchUser, getToken } = useAuth();
+const { club, fetchClub, isMember } = useClub();
+
+// Alias for template
+const currentClub = club;
 
 const schema = schemas.login;
 const errorMessage = ref('');
 
-// Load club data on mount
+// Check if already logged in
 onMounted(async () => {
-  if (subdomain.value && !currentClub.value) {
-    await fetchClubBySubdomain(subdomain.value);
-  }
-
-  if (isAuthenticated.value) {
-    await handleAuthenticatedUser();
+  if (getToken()) {
+    await fetchUser();
+    await fetchClub();
+    if (user.value) {
+      router.push(isMember.value ? '/dashboard' : '/join');
+    }
   }
 });
 
-const handleSubmit = async (values: any, { setErrors }: any) => {
+const handleSubmit = async (values: any) => {
   errorMessage.value = '';
+  const result = await login(values.email, values.password);
 
-  try {
-    const result = await login({
-      email: values.email,
-      password: values.password
-    });
-
-    if (result.success) {
-      toast.success('Login successful!');
-      await handleAuthenticatedUser();
-    } else {
-      // Handle validation errors
-      if (result.errors) {
-        setErrors(result.errors);
-      }
-
-      // Handle message-based errors (like 401)
-      if (result.message) {
-        errorMessage.value = result.message;
-        toast.error(result.message);
-      }
-    }
-  } catch (error: any) {
-    console.error('Login error:', error);
-    // Extract error message from various possible locations
-    const message = error.data?.message
-      || error.response?._data?.message
-      || error.message
-      || 'An error occurred. Please try again.';
-
-    errorMessage.value = message;
-    toast.error(message);
-  }
-};
-
-const handleAuthenticatedUser = async () => {
-  if (currentClub.value) {
-    try {
-      const membership = await checkMembership(currentClub.value.id);
-
-      if (membership.isMember) {
-        router.push('/dashboard');
-      } else {
-        router.push('/join');
-      }
-    } catch (error) {
-      console.error('Membership check error:', error);
-      // If membership check fails, redirect to join page
-      router.push('/join');
-    }
+  if (result.success) {
+    await fetchClub();
+    router.push(isMember.value ? '/dashboard' : '/join');
   } else {
-    router.push('/dashboard');
+    errorMessage.value = result.message || 'Login failed';
   }
 };
 
-const handleGoogleLogin = () => {
-  console.log('Google login clicked');
-};
-
-const handleXLogin = () => {
-  console.log('X login clicked');
-};
+const handleGoogleLogin = () => console.log('Google login');
+const handleXLogin = () => console.log('X login');
 </script>

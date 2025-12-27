@@ -1,24 +1,17 @@
 // middleware/auth.ts
-// Protects routes that require authentication
+// Simple auth middleware - just check if token exists
 
-export default defineNuxtRouteMiddleware(async (to) => {
-    const { user, fetchUser, isAuthenticated } = useAuth()
-
+export default defineNuxtRouteMiddleware((to) => {
     // Only run on client-side
     if (import.meta.server) return
 
-    // Skip auth check for public pages
-    const publicPages = ['/login', '/register', '/club-not-found', '/join']
-    if (publicPages.includes(to.path)) return
+    // Check localStorage for token
+    const token = localStorage.getItem('auth_token')
 
-    // Check if user is authenticated
-    if (!isAuthenticated.value) {
-        // Try to fetch user with existing token
-        await fetchUser()
-
-        // If still not authenticated, redirect to login
-        if (!isAuthenticated.value) {
-            return navigateTo('/login')
-        }
+    // No token = go to login
+    if (!token) {
+        return navigateTo('/login')
     }
+
+    // Token exists = let the page handle the rest
 })

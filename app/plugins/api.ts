@@ -1,12 +1,38 @@
-import { defineNuxtPlugin, useRouter, useRuntimeConfig } from '#app';
-import type { FetchError } from 'ofetch';
-import { authToken } from '~/composables/useAuth';
+import { defineNuxtPlugin, useRuntimeConfig } from '#app';
+import { toast } from 'vue-sonner';
 
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
-  const router = useRouter();
 
-  // Create a base $fetch instance
+  // Get token from localStorage
+  const getToken = (): string | null => {
+    if (import.meta.server) return null;
+    try {
+      return localStorage.getItem('auth_token');
+    } catch {
+      return null;
+    }
+  };
+
+  // Get subdomain from URL
+  const getSubdomain = (): string | null => {
+    if (import.meta.server) return null;
+    try {
+      const host = window.location.hostname;
+      const baseDomain = config.public.baseDomain || 'raceyaclub.local';
+      if (host.endsWith(`.${baseDomain}`)) {
+        const sub = host.replace(`.${baseDomain}`, '');
+        if (sub && sub !== 'www' && sub !== 'app' && sub !== 'api') {
+          return sub;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+
+  // Create $fetch instance
   const $api = $fetch.create({
     baseURL: config.public.api.apiURL,
 
@@ -16,132 +42,77 @@ export default defineNuxtPlugin((nuxtApp) => {
     },
 
     async onRequest({ options }) {
-      // Attach auth token from state
-      if (authToken.value) {
-        options.headers = options.headers || {};
+      // Add auth token
+      const token = getToken();
+      if (token) {
         // @ts-ignore
-        options.headers['Authorization'] = `Bearer ${authToken.value}`;
+        options.headers = { ...options.headers, Authorization: `Bearer ${token}` };
+      }
+
+      // Add subdomain to query params
+      const subdomain = getSubdomain();
+      if (subdomain) {
+        // @ts-ignore
+        options.query = { ...options.query, subdomain };
       }
     },
 
     async onResponse({ response }) {
-      // Optional: Log successful responses in development
-      if (process.dev) {
-        console.log('✅ API Response:', response.status, response.url);
+      // Show success toast if API returns a message (for mutations like POST, PUT, PATCH, DELETE)
+      if (import.meta.client && response.ok) {
+        const data = response._data;
+        if (data?.message && typeof data.message === 'string') {
+          toast.success(data.message);
+        }
       }
     },
 
-    async onResponseError({ response, options }) {
+    async onResponseError({ response }) {
       const status = response.status;
-      const url = options.baseURL + (options.url || '');
 
-      // Log error details
-      console.error(`❌ API Error [${status}]:`, {
-        url,
-        message: response._data?.message,
-        errors: response._data?.errors,
-      });
-
-      // Handle different error types
-      switch (status) {
-        case 401: // Unauthorized
-          nuxtApp.$toast.error('Session expired. Please login again.');
-
-          // Clear auth token and redirect to login
-          const tokenName = config.public.auth?.provider?.token?.cookieName || 'accessToken';
-          useCookie(tokenName).value = null;
-
-          // Avoid redirect loop
-          if (router.currentRoute.value.path !== '/login') {
-            await router.push('/login');
-          }
-          break;
-
-        case 403: // Forbidden
-          nuxtApp.$toast.error("You don't have permission to access this.");
-          break;
-
-        case 404: // Not Found
-          nuxtApp.$toast.error('Resource not found');
-          break;
-
-        case 419: // CSRF Token Mismatch (Laravel)
-          console.error('CSRF token mismatch. Refreshing...');
-          if (process.client) {
-            window.location.reload();
-          }
-          break;
-
-        case 422: // Validation Error (Laravel)
-          // Don't show toast for validation errors (handle in forms)
-          console.warn('Validation errors:', response._data?.errors);
-          break;
-
-        case 429: // Too Many Requests
-          nuxtApp.$toast.warning('Too many requests. Please slow down.');
-          const retryAfter = response.headers.get('Retry-After');
-          console.warn(`Rate limited. Retry after ${retryAfter} seconds`);
-          break;
-
-        case 500: // Server Error
-        case 502:
-        case 503:
-          nuxtApp.$toast.error('Server error. Please try again later.');
-          break;
-
-        default:
-          console.error('Unexpected error:', response._data);
+      if (status === 401 && import.meta.client) {
+        localStorage.removeItem('auth_token');
       }
-    },
 
-    // Handle network errors (no response from server)
-    async onRequestError({ error }) {
-      console.error('Network Error:', error);
-      nuxtApp.$toast.error('Network error. Please check your connection.');
+      // Show error toast for API errors
+      if (import.meta.client) {
+        const data = response._data;
+        if (data?.message && typeof data.message === 'string') {
+          toast.error(data.message);
+        } else if (status === 422 && data?.errors) {
+          // Validation errors - show first error
+          const firstError = Object.values(data.errors)[0];
+          if (Array.isArray(firstError) && firstError[0]) {
+            toast.error(firstError[0] as string);
+          }
+        } else if (status === 500) {
+          toast.error('Server error. Please try again later.');
+        } else if (status === 404) {
+          toast.error('Resource not found.');
+        }
+      }
     },
   });
 
-  // Enhanced shortcut methods with better typing
+  // Simple API methods
   const api = {
-    // Raw request method
-    request: $api,
+    get: <T = unknown>(url: string, options?: any) =>
+      $api<T>(url, { method: 'GET', ...options }),
 
-    // GET
-    get: <T = unknown>(endpoint: string, options?: RequestInit) => $api<T>(endpoint, { method: 'GET', ...options }),
+    post: <T = unknown>(url: string, body?: unknown, options?: any) =>
+      $api<T>(url, { method: 'POST', body, ...options }),
 
-    // POST
-    post: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit) =>
-      $api<T>(endpoint, { method: 'POST', body, ...options }),
+    put: <T = unknown>(url: string, body?: unknown, options?: any) =>
+      $api<T>(url, { method: 'PUT', body, ...options }),
 
-    // PUT
-    put: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit) =>
-      $api<T>(endpoint, { method: 'PUT', body, ...options }),
+    patch: <T = unknown>(url: string, body?: unknown, options?: any) =>
+      $api<T>(url, { method: 'PATCH', body, ...options }),
 
-    // PATCH
-    patch: <T = unknown>(endpoint: string, body?: unknown, options?: RequestInit) =>
-      $api<T>(endpoint, { method: 'PATCH', body, ...options }),
-
-    // DELETE
-    delete: <T = unknown>(endpoint: string, options?: RequestInit) =>
-      $api<T>(endpoint, { method: 'DELETE', ...options }),
-
-    // Utility method to check if error is a FetchError
-    isFetchError: (error: unknown): error is FetchError => {
-      return error instanceof Error && 'response' in error;
-    },
-
-    // Extract Laravel validation errors
-    getValidationErrors: (error: unknown): Record<string, string[]> => {
-      if (api.isFetchError(error)) {
-        return error.response?._data?.errors || {};
-      }
-      return {};
-    },
+    delete: <T = unknown>(url: string, options?: any) =>
+      $api<T>(url, { method: 'DELETE', ...options }),
   };
 
   return {
-    provide: {
-      api, // accessible via useNuxtApp().$api or const { $api } = useNuxtApp()
-    },
+    provide: { api },
   };
 });

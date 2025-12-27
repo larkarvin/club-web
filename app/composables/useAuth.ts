@@ -1,81 +1,59 @@
 // composables/useAuth.ts
-interface AuthResponse {
-  success: boolean;
-  message: string;
-  token: string;
-  type: string; // "Bearer"
-  user: {
+// Simple auth composable - localStorage for token, useState for user
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  clubs: Array<{
     id: number;
-    name: string;
-    email: string;
-    created_at: string;
-    updated_at: string;
-  };
-  club?: {
-    id: number;
-    name: string;
     subdomain: string;
-    status: string;
-    mine: boolean;
-    created_at: string;
-  };
+    role: string;
+  }>;
 }
 
-interface RegisterClubData {
-  club_name: string;
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
+export function useAuth() {
+  const user = useState<User | null>('user', () => null);
 
-interface RegisterUserData {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}
-
-interface LoginData {
-  email: string;
-  password: string;
-}
-
-// Global token state (shared across all composable instances)
-const authToken = ref<string | null>(null);
-
-export const useAuth = () => {
-  const { $api } = useNuxtApp();
-  const router = useRouter();
-
-  // User state
-  const user = useState<AuthResponse['user'] | null>('auth-user', () => null);
-
-  // Check if authenticated
-  const isAuthenticated = computed(() => !!authToken.value);
-
-  // Get current user token
-  const getToken = () => authToken.value;
-
-  // Set token (also exposed for external use)
-  const setToken = (token: string | null) => {
-    authToken.value = token;
-  };
-
-  /**
-   * Fetch current user data
-   */
-  const fetchUser = async () => {
+  // Token helpers
+  const getToken = () => {
+    if (import.meta.server) return null;
     try {
-      const tokenCookie = useCookie(tokenCookieName);
-      if (!tokenCookie.value) {
-        user.value = null;
-        return null;
-      }
+      return localStorage.getItem('auth_token');
+    } catch {
+      return null;
+    }
+  };
 
-      const response = await $api.get<{ user: AuthResponse['user'] }>('/user');
-      user.value = response.user;
-      return user.value;
+  const setToken = (token: string | null) => {
+    if (import.meta.server) return;
+    try {
+      if (token) {
+        localStorage.setItem('auth_token', token);
+      } else {
+        localStorage.removeItem('auth_token');
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const isLoggedIn = computed(() => {
+    if (import.meta.server) return false;
+    return !!getToken();
+  });
+
+  // Fetch user
+  const fetchUser = async () => {
+    if (!getToken()) {
+      user.value = null;
+      return null;
+    }
+    try {
+      const { $api } = useNuxtApp();
+      const response = await $api.get<User>('/auth/me');
+      user.value = response;
+      return response;
     } catch (error) {
       console.error('Failed to fetch user:', error);
       user.value = null;
@@ -83,131 +61,64 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Register new user and club
-   */
-  const register = async (data: RegisterClubData) => {
+  // Login
+  const login = async (email: string, password: string) => {
     try {
-      const response = await $api.post<AuthResponse>('/register', data);
-      console.log('Registration successful:', response);
-
-      // Save the token to cookie
+      const { $api } = useNuxtApp();
+      const response = await $api.post<any>('/login', { email, password });
       if (response.token) {
-        const tokenCookie = useCookie(tokenCookieName);
-        tokenCookie.value = response.token;
-
-        // Save user data
+        setToken(response.token);
         user.value = response.user;
       }
-
       return { success: true, data: response };
     } catch (error: any) {
-      console.error('❌ Registration failed:', error);
-      if (error.response?.status === 422) {
-        const errors = $api.getValidationErrors(error);
-        return { success: false, errors };
-      }
-      throw error;
+      // $fetch throws FetchError with data property containing response body
+      const message = error.data?.message || error.message || 'Login failed';
+      return { success: false, message };
     }
   };
 
-  /**
-   * Register user only (no club) - for club subdomain registration
-   */
-  const registerUserOnly = async (data: RegisterUserData) => {
-    try {
-      const response = await $api.post<AuthResponse>('/register/user', data);
-      console.log('Registration successful:', response);
-
-      // Save the token to cookie
-      if (response.token) {
-        const tokenCookie = useCookie(tokenCookieName);
-        tokenCookie.value = response.token;
-
-        // Save user data
-        user.value = response.user;
-      }
-
-      return { success: true, data: response };
-    } catch (error: any) {
-      console.error('❌ Registration failed:', error);
-      if (error.response?.status === 422) {
-        const errors = $api.getValidationErrors(error);
-        return { success: false, errors };
-      }
-      throw error;
-    }
-  };
-
-  /**
-   * Login user
-   */
-  const login = async (data: LoginData) => {
-    try {
-      const response = await $api.post<AuthResponse>('/login', data);
-
-      // Save token to state
-      if (response.token) {
-        authToken.value = response.token;
-        user.value = response.user;
-      }
-
-      return { success: true, data: response };
-    } catch (error: any) {
-      console.error('❌ Login failed:', error);
-
-      // Handle validation errors (422)
-      if (error.response?.status === 422) {
-        const errors = $api.getValidationErrors(error);
-        return { success: false, errors };
-      }
-
-      // Handle unauthorized errors (401)
-      if (error.response?.status === 401 || error.status === 401) {
-        const message = error.response?._data?.message
-          || error.data?.message
-          || 'Invalid email or password';
-        return { success: false, message };
-      }
-
-      throw error;
-    }
-  };
-
-  /**
-   * Logout user
-   */
+  // Logout
   const logout = async () => {
     try {
+      const { $api } = useNuxtApp();
       await $api.post('/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Clear token and user data
-      authToken.value = null;
-      user.value = null;
+    } catch {
+      // ignore
+    }
+    setToken(null);
+    user.value = null;
+    navigateTo('/login');
+  };
 
-      // Redirect to login
-      router.push('/login');
+  // Register
+  const register = async (data: any) => {
+    try {
+      const { $api } = useNuxtApp();
+      const response = await $api.post<any>('/register', data);
+      if (response.token) {
+        setToken(response.token);
+        user.value = response.user;
+      }
+      return { success: true, data: response };
+    } catch (error: any) {
+      return { success: false, errors: error.response?._data?.errors || {} };
     }
   };
 
   return {
-    // State
-    user: readonly(user),
-    isAuthenticated,
-    authToken: readonly(authToken),
-
-    // Methods
-    register,
-    registerUserOnly,
-    login,
-    logout,
-    fetchUser,
+    user,
+    isLoggedIn,
     getToken,
     setToken,
+    fetchUser,
+    login,
+    logout,
+    register,
+    // Aliases
+    isAuthenticated: isLoggedIn,
   };
-};
+}
 
-// Export authToken for use in plugins
-export { authToken };
+// Also export as useAuth for compatibility
+export const useAuthComposable = useAuth;

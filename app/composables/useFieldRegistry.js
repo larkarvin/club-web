@@ -6,10 +6,9 @@ export const FIELD_TYPES = {
     icon: '📝',
     defaultConfig: {
       type: 'text',
-      name: '',
-      label: '',
+      label: 'Text Field',
       description: '',
-      placeholder: '',
+      placeholder: 'Enter text...',
       required: false,
       disabledAfterSubmission: false,
       minLength: null,
@@ -22,14 +21,13 @@ export const FIELD_TYPES = {
     icon: '📄',
     defaultConfig: {
       type: 'textarea',
-      name: '',
-      label: '',
+      label: 'Text Area',
       description: '',
-      placeholder: '',
+      placeholder: 'Enter text...',
       required: false,
       disabledAfterSubmission: false,
-      minLength: 5,
-      maxLength: 300
+      minLength: null,
+      maxLength: null
     }
   },
   select: {
@@ -38,8 +36,7 @@ export const FIELD_TYPES = {
     icon: '📋',
     defaultConfig: {
       type: 'select',
-      name: '',
-      label: '',
+      label: 'Select Option',
       description: '',
       placeholder: 'Select an option...',
       required: false,
@@ -56,8 +53,7 @@ export const FIELD_TYPES = {
     icon: '📧',
     defaultConfig: {
       type: 'email',
-      name: '',
-      label: '',
+      label: 'Email Address',
       description: '',
       placeholder: 'Enter email address...',
       required: false,
@@ -70,8 +66,7 @@ export const FIELD_TYPES = {
     icon: '📞',
     defaultConfig: {
       type: 'phone',
-      name: '',
-      label: '',
+      label: 'Phone Number',
       description: '',
       placeholder: 'Enter phone number...',
       required: false,
@@ -84,8 +79,7 @@ export const FIELD_TYPES = {
     icon: '🔢',
     defaultConfig: {
       type: 'number',
-      name: '',
-      label: '',
+      label: 'Number',
       description: '',
       placeholder: 'Enter number...',
       required: false,

@@ -72,35 +72,40 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import AdminLayout from '~/components/layout/AdminLayout.vue'
 
-definePageMeta({
-    middleware: ['auth']
-})
+definePageMeta({ middleware: ['auth'] })
 
 const router = useRouter()
-const { user, isAuthenticated } = useAuth()
-const { currentClub, subdomain, fetchClubBySubdomain, checkMembership, membershipStatus } = useClub()
+const { user, fetchUser } = useAuth()
+const { club } = useClub()
+
+// Alias for template
+const currentClub = club
+const memberRole = ref<string | null>(null)
+const membershipStatus = computed(() => ({ role: memberRole.value }))
 
 onMounted(async () => {
-    // Load club if on subdomain
-    if (subdomain.value && !currentClub.value) {
-        await fetchClubBySubdomain(subdomain.value)
-    }
+    if (!user.value) await fetchUser()
 
-    // Check authentication
-    if (!isAuthenticated.value) {
-        router.push('/login')
-        return
-    }
+    // Use join-check API to verify membership
+    try {
+        const { $api } = useNuxtApp()
+        const response = await $api.get<{ isMember: boolean; role: string | null; club: any }>('/join-check')
 
-    // Check membership if on club subdomain
-    if (currentClub.value) {
-        const membership = await checkMembership(currentClub.value.id)
-        if (!membership.isMember) {
-            router.push('/join')
+        if (response.club) {
+            club.value = response.club
         }
+
+        if (!response.isMember) {
+            router.push('/join')
+            return
+        }
+
+        memberRole.value = response.role
+    } catch (error) {
+        console.error('Failed to check membership:', error)
+        router.push('/join')
     }
 })
 </script>

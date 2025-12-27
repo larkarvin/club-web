@@ -36,53 +36,51 @@
 
         <!-- OPTIONS Section -->
         <CollapsibleSection title="OPTIONS" :default-open="true">
-            <!-- Options List with vuedraggable -->
-            <draggable v-model="localField.options" item-key="id" :animation="200" handle=".option-drag-handle"
-                class="space-y-2" @change="emitUpdate">
-                <template #item="{ element: option, index }">
-                    <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-meta-4 rounded-lg border border-stroke dark:border-strokedark">
-                        <!-- Drag Handle -->
-                        <div class="option-drag-handle cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <circle cx="9" cy="5" r="1.5" />
-                                <circle cx="9" cy="12" r="1.5" />
-                                <circle cx="9" cy="19" r="1.5" />
-                                <circle cx="15" cy="5" r="1.5" />
-                                <circle cx="15" cy="12" r="1.5" />
-                                <circle cx="15" cy="19" r="1.5" />
-                            </svg>
-                        </div>
-
-                        <!-- Option Fields -->
-                        <div class="flex-1 grid grid-cols-3 gap-2">
-                            <!-- Value -->
-                            <input type="text" :value="option.value"
-                                @input="updateOption(index, 'value', $event.target.value)" placeholder="Value"
-                                class="w-full rounded border border-stroke bg-white px-2 py-1.5 text-sm text-black outline-none transition focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white" />
-
-                            <!-- Label -->
-                            <input type="text" :value="option.label"
-                                @input="updateOption(index, 'label', $event.target.value)" placeholder="Label"
-                                class="w-full rounded border border-stroke bg-white px-2 py-1.5 text-sm text-black outline-none transition focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white" />
-
-                            <!-- Price -->
-                            <input type="number" :value="option.price" step="0.01" min="0"
-                                @input="updateOption(index, 'price', parseFloat($event.target.value) || 0)"
-                                placeholder="Price"
-                                class="w-full rounded border border-stroke bg-white px-2 py-1.5 text-sm text-black outline-none transition focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white" />
-                        </div>
-
-                        <!-- Delete Button (trash icon) -->
-                        <button @click.stop.prevent="removeOption(index)"
-                            class="p-1 text-gray-400 hover:text-meta-1 transition-colors" title="Remove option">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
+            <!-- Options List -->
+            <div ref="optionsListRef" class="space-y-2">
+                <div v-for="(option, index) in localField.options" :key="option.id" :data-id="option.id"
+                    class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-meta-4 rounded-lg border border-stroke dark:border-strokedark">
+                    <!-- Drag Handle -->
+                    <div class="option-drag-handle cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <circle cx="9" cy="5" r="1.5" />
+                            <circle cx="9" cy="12" r="1.5" />
+                            <circle cx="9" cy="19" r="1.5" />
+                            <circle cx="15" cy="5" r="1.5" />
+                            <circle cx="15" cy="12" r="1.5" />
+                            <circle cx="15" cy="19" r="1.5" />
+                        </svg>
                     </div>
-                </template>
-            </draggable>
+
+                    <!-- Option Fields -->
+                    <div class="flex-1 grid grid-cols-3 gap-2">
+                        <!-- Value -->
+                        <input type="text" :value="option.value"
+                            @input="updateOption(index, 'value', $event.target.value)" placeholder="Value"
+                            class="w-full rounded border border-stroke bg-white px-2 py-1.5 text-sm text-black outline-none transition focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white" />
+
+                        <!-- Label -->
+                        <input type="text" :value="option.label"
+                            @input="updateOption(index, 'label', $event.target.value)" placeholder="Label"
+                            class="w-full rounded border border-stroke bg-white px-2 py-1.5 text-sm text-black outline-none transition focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white" />
+
+                        <!-- Price -->
+                        <input type="number" :value="option.price" step="0.01" min="0"
+                            @input="updateOption(index, 'price', parseFloat($event.target.value) || 0)"
+                            placeholder="Price"
+                            class="w-full rounded border border-stroke bg-white px-2 py-1.5 text-sm text-black outline-none transition focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white" />
+                    </div>
+
+                    <!-- Delete Button (trash icon) -->
+                    <button @click.stop.prevent="removeOption(index)"
+                        class="p-1 text-gray-400 hover:text-meta-1 transition-colors" title="Remove option">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
 
             <!-- Column Headers (subtle) -->
             <div class="flex items-center gap-2 px-3 mt-1 mb-2">
@@ -120,8 +118,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import draggable from 'vuedraggable'
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import BaseInput from '~/components/forms/BaseInput.vue'
 import CollapsibleSection from '../ui/CollapsibleSection.vue'
 import ToggleSwitch from '../ui/ToggleSwitch.vue'
@@ -135,6 +132,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update:field', 'delete'])
 
+// Template ref for sortable options
+const optionsListRef = ref(null)
+let sortableInstance = null
+
 // Local copy for editing
 const localField = ref({ ...props.field })
 
@@ -143,14 +144,62 @@ watch(() => props.field, (newField) => {
     localField.value = { ...newField }
 }, { deep: true })
 
+// Initialize SortableJS on mount
+onMounted(async () => {
+    await nextTick()
+    if (optionsListRef.value && localField.value.options?.length > 0) {
+        initSortable()
+    }
+})
+
+// Watch for options changes to reinitialize sortable
+watch(() => localField.value.options?.length, async (newLen, oldLen) => {
+    if (newLen > 0) {
+        await nextTick()
+        initSortable()
+    }
+})
+
+// Initialize SortableJS
+const initSortable = async () => {
+    if (sortableInstance) {
+        sortableInstance.destroy()
+    }
+
+    if (!optionsListRef.value) return
+
+    try {
+        const Sortable = (await import('sortablejs')).default
+        sortableInstance = Sortable.create(optionsListRef.value, {
+            handle: '.option-drag-handle',
+            animation: 200,
+            onEnd: (evt) => {
+                const { oldIndex, newIndex } = evt
+                if (oldIndex !== newIndex) {
+                    const newOptions = [...localField.value.options]
+                    const [movedItem] = newOptions.splice(oldIndex, 1)
+                    newOptions.splice(newIndex, 0, movedItem)
+                    localField.value.options = newOptions
+                    emit('update:field', localField.value)
+                }
+            }
+        })
+    } catch (error) {
+        console.error('Failed to load SortableJS:', error)
+    }
+}
+
+// Cleanup on unmount
+onBeforeUnmount(() => {
+    if (sortableInstance) {
+        sortableInstance.destroy()
+        sortableInstance = null
+    }
+})
+
 // Update field property
 const updateField = (property, value) => {
     localField.value[property] = value
-    emit('update:field', localField.value)
-}
-
-// Emit update
-const emitUpdate = () => {
     emit('update:field', localField.value)
 }
 

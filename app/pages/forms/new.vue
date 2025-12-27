@@ -21,39 +21,19 @@ import AdminLayout from '~/components/layout/AdminLayout.vue'
 import PageBreadcrumb from '~/components/common/PageBreadcrumb.vue'
 import { useApi } from '~/composables/useApi'
 
+definePageMeta({ middleware: ['auth'] })
+
 const router = useRouter()
-const { forms, clubId } = useApi()
+const { forms } = useApi()
 
-// Create form immediately on mount
 onMounted(async () => {
-    await createForm()
-})
-
-const createForm = async () => {
-    if (!clubId.value) {
-        toast.error('No club selected. Please select a club first.')
-        router.push('/clubs')
-        return
-    }
-
     try {
-        // Create form from default template
         const response = await forms.createFromTemplate('default')
-
-        // Redirect to fields editor
-        router.replace({
-            path: `/forms/${response.data.id}/fields`,
-            query: { club_id: clubId.value }
-        })
+        router.replace(`/forms/${response.data.id}/fields`)
     } catch (error) {
         console.error('Error creating form:', error)
-        toast.error(error.data?.message || 'Failed to create form. Please try again.')
-
-        // Redirect back to forms list
-        router.push({
-            path: '/forms',
-            query: clubId.value ? { club_id: clubId.value } : {}
-        })
+        toast.error('Failed to create form.')
+        router.push('/forms')
     }
-}
+})
 </script>

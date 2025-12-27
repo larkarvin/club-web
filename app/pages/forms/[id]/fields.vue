@@ -123,15 +123,6 @@
                         </svg>
                         Preview Payload
                     </button>
-
-                    <!-- Save Button -->
-                    <button @click="handleSaveForm" :disabled="isSaving"
-                        class="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-3 text-center font-medium text-white hover:bg-brand-600 disabled:bg-opacity-50 disabled:cursor-not-allowed">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Save Form
-                    </button>
                 </div>
             </div>
         </template>
@@ -153,9 +144,11 @@ import { useFormBuilder } from '~/composables/useFormBuilder'
 import { useVueformSchema } from '~/composables/useVueformSchema'
 import { useApi } from '~/composables/useApi'
 
+definePageMeta({ middleware: ['auth'] })
+
 const router = useRouter()
 const route = useRoute()
-const { forms, fields: fieldsApi, clubId } = useApi()
+const { forms, fields: fieldsApi } = useApi()
 
 // Get form ID from route
 const formId = computed(() => route.params.id)
@@ -224,7 +217,7 @@ onMounted(async () => {
     await loadForm()
 })
 
-// Map API field to local field format
+// Map API field (snake_case) to local field format (camelCase)
 const mapApiFieldToLocal = (apiField) => ({
     id: apiField.id,
     type: apiField.type,
@@ -236,8 +229,8 @@ const mapApiFieldToLocal = (apiField) => ({
     maxLength: apiField.max || null,
     min: apiField.min || null,
     max: apiField.max || null,
-    allowDecimal: apiField.allowDecimal || false,
-    disabledAfterSubmission: apiField.disabledAfterSubmission || false,
+    allowDecimal: apiField.allow_decimal || false,
+    disabledAfterSubmission: apiField.disabled_after_submission || false,
     options: apiField.options?.map(opt => ({
         id: opt.id,
         value: opt.value,
@@ -246,24 +239,34 @@ const mapApiFieldToLocal = (apiField) => ({
     })) || []
 })
 
-// Map local field to API format
-const mapLocalFieldToApi = (localField) => ({
-    field_key: localField.id,
-    type: localField.type,
-    label: localField.label,
-    placeholder: localField.placeholder,
-    description: localField.description,
-    required: localField.required,
-    min: localField.type === 'number' ? localField.min : localField.minLength,
-    max: localField.type === 'number' ? localField.max : localField.maxLength,
-    allow_decimal: localField.allowDecimal,
-    disabled_after_submission: localField.disabledAfterSubmission,
-    options: localField.options?.map(opt => ({
-        value: opt.value,
-        label: opt.label,
-        price: opt.price || 0
-    })) || []
-})
+// Map local field to API format (snake_case for API)
+// isNew: true for creating new fields, false for updating existing ones
+const mapLocalFieldToApi = (localField, isNew = false) => {
+    const mapped = {
+        type: localField.type,
+        label: localField.label,
+        placeholder: localField.placeholder,
+        description: localField.description,
+        required: localField.required,
+        min: localField.type === 'number' ? localField.min : localField.minLength,
+        max: localField.type === 'number' ? localField.max : localField.maxLength,
+        allow_decimal: localField.allowDecimal,
+        disabled_after_submission: localField.disabledAfterSubmission,
+        options: localField.options?.map(opt => ({
+            option_key: String(opt.id || opt.value),
+            value: opt.value,
+            label: opt.label,
+            price: opt.price || 0
+        })) || []
+    }
+
+    // Only include field_key for new fields
+    if (isNew) {
+        mapped.field_key = String(localField.id)
+    }
+
+    return mapped
+}
 
 // Load form from API
 const loadForm = async () => {
@@ -271,27 +274,38 @@ const loadForm = async () => {
 
     try {
         const response = await forms.get(formId.value)
+        console.log('API Response:', response)
+
+        // Handle both wrapped and unwrapped responses
         const formData = response.data || response
 
-        // Set form settings
+        console.log('Form Data:', formData)
+
+        // Set form settings (API returns snake_case)
         formSettings.value = {
             title: formData.title || '',
             slug: formData.slug || '',
             description: formData.description || '',
-            processingFee: formData.processingFee || 0,
+            processingFee: formData.processing_fee || 0,
             enabled: formData.enabled !== false,
-            submissionDeadline: formData.submissionDeadline || null
+            submissionDeadline: formData.submission_deadline || null
         }
 
         // Set fields (map from API format to local format)
         if (formData.fields && Array.isArray(formData.fields)) {
-            const mappedFields = formData.fields.map(mapApiFieldToLocal)
+            const mappedFields = formData.fields
+                .filter(f => f && f.id) // Filter out null/undefined fields
+                .map(mapApiFieldToLocal)
+            console.log('Mapped Fields:', mappedFields)
             setFields(mappedFields)
+        } else {
+            console.log('No fields found in response')
+            setFields([])
         }
     } catch (error) {
         console.error('Error loading form:', error)
         toast.error('Failed to load form')
-        router.push({ path: '/forms', query: clubId.value ? { club_id: clubId.value } : {} })
+        router.push('/forms')
     } finally {
         isLoading.value = false
     }
@@ -342,14 +356,13 @@ const handleSaveFormFromSettings = async (settings) => {
 // Add field via API
 const handleAddField = async (fieldType) => {
     const newField = addField(fieldType)
-    const apiField = mapLocalFieldToApi(newField)
+    const apiField = mapLocalFieldToApi(newField, true) // isNew = true
 
     try {
         const response = await fieldsApi.create(formId.value, apiField)
-        const responseData = response.data || response
         // Update local field with server response (use server-generated ID)
-        if (responseData.id) {
-            updateField(newField.id, { ...newField, id: responseData.id })
+        if (response.data?.id) {
+            updateField(newField.id, { ...newField, id: response.data.id })
         }
     } catch (error) {
         console.error('Error adding field:', error)
@@ -362,7 +375,9 @@ const handleAddField = async (fieldType) => {
 // Update field via API (debounced)
 let updateTimeout = null
 const handleUpdateField = async (updatedField) => {
-    if (!selectedFieldId.value) return
+    if (!selectedFieldId.value || !updatedField?.id) return
+
+    const fieldId = updatedField.id
 
     // Update local state immediately
     updateField(selectedFieldId.value, updatedField)
@@ -372,10 +387,10 @@ const handleUpdateField = async (updatedField) => {
     updateTimeout = setTimeout(async () => {
         try {
             const apiField = mapLocalFieldToApi(updatedField)
-            await fieldsApi.update(formId.value, selectedFieldId.value, apiField)
+            await fieldsApi.update(formId.value, fieldId, apiField)
+            toast.success('Field updated')
         } catch (error) {
             console.error('Error updating field:', error)
-            toast.error('Failed to update field')
         }
     }, 500)
 }
@@ -444,10 +459,7 @@ const handleSaveForm = async () => {
 
 // Cancel and go back
 const handleCancel = () => {
-    router.push({
-        path: '/forms',
-        query: clubId.value ? { club_id: clubId.value } : {}
-    })
+    router.push('/forms')
 }
 
 // Click outside to deselect field

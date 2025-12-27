@@ -18,7 +18,7 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint', '@nuxt/test-utils', '@nuxt/image', '@nuxtjs/tailwindcss', '@pinia/nuxt', 'nuxt-swiper'],
 
-  css: ['flatpickr/dist/flatpickr.css', 'simplebar-vue/dist/simplebar.min.css', '@/assets/scss/main.scss'],
+  css: ['flatpickr/dist/flatpickr.css', 'simplebar-vue/dist/simplebar.min.css', 'vue-sonner/style.css', '@/assets/scss/main.scss'],
 
   routeRules: {
     '/**': isDev ? {} : { cache: { swr: true, maxAge: 120, staleMaxAge: 60, headersOnly: true } },
